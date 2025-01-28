@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "autoformalization-with-llms"
+version = "0.1.0"
+description = ""
+authors = ["Vasily Ilin <vasilin97@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pantograph = {git = "https://github.com/stanford-centaur/PyPantograph.git"}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
