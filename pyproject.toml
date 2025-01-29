@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-pantograph = {git = "https://github.com/stanford-centaur/PyPantograph.git"}
+pantograph = {git = "https://github.com/stanford-centaur/PyPantograph.git", rev = "f67756f2cde95a807442a423029338e01bdc3769"}
 
 
 [build-system]

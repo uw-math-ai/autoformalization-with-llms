@@ -2,7 +2,7 @@
 
 [[package]]
 name = "pantograph"
-version = "0.2.24"
+version = "0.2.25"
 description = "A machine-to-machine interaction system for Lean"
 optional = false
 python-versions = ">=3.9.0"
@@ -16,8 +16,8 @@ pexpect = "^4.9.0"
 [package.source]
 type = "git"
 url = "https://github.com/stanford-centaur/PyPantograph.git"
-reference = "HEAD"
-resolved_reference = "781ccfaed688d6fae8fdbea2aaef0cc06d531998"
+reference = "f67756f2cde95a807442a423029338e01bdc3769"
+resolved_reference = "f67756f2cde95a807442a423029338e01bdc3769"
 
 [[package]]
 name = "pexpect"
@@ -49,4 +49,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "dcf6e9a42f81bfcd38b269ad0eb9620241b28f60ef004805064618dab498a98c"
+content-hash = "d381ea1097eddd9d6fbfed664fd320b1749a42066d9a77d9fc6eb4b4e36da441"
