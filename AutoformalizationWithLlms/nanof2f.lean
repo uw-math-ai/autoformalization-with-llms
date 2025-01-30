@@ -9,3 +9,16 @@ example : forall (p q: Prop), Or p q -> Or q p := by
   exact hp
   left
   exact hq
+
+example : forall (p q : Prop), p ∧ q → q ∧ p := by
+  intro p q h
+  constructor
+  exact h.right
+  exact h.left
+
+example (p q : Prop) : ¬(p → q) ↔ p ∧ ¬q := by
+  constructor
+  intro h
+  sorry -- TODO: add proof
+  intro h
+  sorry
