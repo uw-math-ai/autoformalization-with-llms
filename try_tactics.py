@@ -15,6 +15,7 @@ if __name__ == '__main__':
     server = Server(project_path="./")
     state = server.goal_start("forall (p q: Prop), Or p q -> Or q p")
 
+    encountered_states = [state]
     i = 0
 
     tactics = parse_tactics()
@@ -27,7 +28,8 @@ if __name__ == '__main__':
         try:
             new_state = server.goal_tactic(state, goal_id=0, tactic=tactic)
             i+= 1
-            state = new_state
+            if not new_state in encountered_states: # check if we possibly regressed to a previous goal state
+                state = new_state
 
         except Exception as e:
             tactics.append(tactic)
