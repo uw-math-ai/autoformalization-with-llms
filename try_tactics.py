@@ -30,8 +30,10 @@ if __name__ == '__main__':
             i+= 1
             if not new_state in encountered_states: # check if we possibly regressed to a previous goal state
                 state = new_state
+                encountered_states.append(state)
 
         except Exception as e:
             tactics.append(tactic)
             print(e)
+            encountered_states.remove(state)
             state = prev_state
