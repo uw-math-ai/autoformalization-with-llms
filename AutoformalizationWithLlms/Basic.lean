@@ -1,5 +1,5 @@
 import Mathlib.Data.Nat.Factorization.Basic
-import Mathlib.Data.Nat.Prime
+import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Data.Real.Basic
 
 open Function
