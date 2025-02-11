@@ -30,7 +30,8 @@ theorems = [
 ]
 
 def format_response(theorem, response):
-    response = response.strip()
+    # remove leading or trailing whitespace
+    response = response.strip() 
     
     if response.startswith("theorem"):
         response = re.sub(r"theorem.*?:\s*by", "", response, flags=re.DOTALL).strip()
