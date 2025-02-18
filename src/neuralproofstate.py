@@ -1,4 +1,5 @@
 from pantograph.server import Server
+import re
 
 # Contains information about the current proof state, including the unsolved goals and previously used tactics
 
@@ -9,7 +10,11 @@ class NeuralProofState():
                     
         if new_proof:
             self.server = Server(project_path="./")
-            self.state = self.server.goal_start(thm_statement)
+            try:
+                self.state = self.server.goal_start(thm_statement)
+            except Exception as e:
+                goal = self.make_valid_goal(thm_statement)
+                self.state = self.server.goal_start(goal)
             self.prev_tactics = []
         else:
             self.server = server
@@ -17,6 +22,17 @@ class NeuralProofState():
             self.prev_tactics = prev_tactics
         
         self.tactics_to_child_states = {}
+    
+    # Turns a theorem statement into a valid goal
+    def make_valid_goal(self, thm_statement):
+        string_groups = re.match(r"\((.*?)\)\s*:\s*(.*)",thm_statement)
+        if string_groups:
+            context = string_groups.group(1)
+            statement = string_groups.group(2)
+            goal = f"forall ({context}), {statement}"
+            return goal
+        else:
+            raise Exception("theorem statement is in an invalid format!")
         
     # TODO currently have to specify a goal to apply a tactic, which isn't ideal. Would like to just check all goals
     def apply_tactic(self, tactic, goal_id=0):
