@@ -40,7 +40,7 @@ if __name__ == "__main__":
     print(root,"\n")
     
     # Replace 'GEMINI_API_KEY' with your actual Gemini API key.
-    api_key = "AIzaSyCJSBALFfDUFjL4kpCTBjKqu1-JfpoigfY"
+    api_key = "GEMINI_API_KEY"
     
     try:
         result = send_prompt(prompt+theorem, api_key)
