@@ -3,20 +3,18 @@ from pantograph.server import Server
 # Contains information about the current proof state, including the unsolved goals and previously used tactics
 
 class NeuralProofState():
-    def __init__(self, state, original_state=None, prev_tactics=None, informal_info=None, server=None, new_proof=False):   
+    def __init__(self, state=None, thm_statement=None, prev_tactics=None, informal_info=None, server=None, new_proof=False):   
    
         self.informal_info = informal_info
                     
         if new_proof:
             self.server = Server(project_path="./")
-            self.state = self.server.goal_start(state)
+            self.state = self.server.goal_start(thm_statement)
             self.prev_tactics = []
-            self.original_state = state
         else:
             self.server = server
             self.state = state
             self.prev_tactics = prev_tactics
-            self.original_state = original_state
         
         self.tactics_to_child_states = {}
         
@@ -24,7 +22,7 @@ class NeuralProofState():
     def apply_tactic(self, tactic, goal_id=0):
         new_state = self.server.goal_tactic(self.state, goal_id=goal_id, tactic=tactic)
         
-        child_node = NeuralProofState(new_state, original_state=self.original_state, 
+        child_node = NeuralProofState(state=new_state, original_state=self.original_state, 
             prev_tactics=self.prev_tactics + [tactic], informal_info=self.informal_info, server=self.server)
         
         self.tactics_to_child_states[tactic] = child_node
@@ -32,8 +30,7 @@ class NeuralProofState():
 
     def to_prompt(self):
         prompt = f"""Given the Lean 4 code: \n{self.state}\n Provide the next tactic to 
-        close all goals and prove the theorem. The original goal for this theorem was: \n{self.original_state}\n 
-        The previous tactics used to prove this theorem are as follows: \n{self.prev_tactics}\n"""
+        close all goals and prove the theorem. The previous tactics used to prove this theorem are as follows: \n{self.prev_tactics}\n"""
         
         if informal_info:
             prompt += f"""You should also consider the following information when choosing a tactic: \n{self.informal_info}\n"""
@@ -44,12 +41,26 @@ class NeuralProofState():
         return prompt
     
     def __str__(self):
+        if len(self.state.__str__()) == 0:
+            return "No more goals!"
         return self.state.__str__()
+    
+    def verbose_string(self):
+        print("Neural Proof State Object: ")
+        if len(self.state.__str__()) == 0:
+            return "No more goals!"
+        else:
+            print(self.state)
+        print(f"Previous tactics: {self.prev_tactics}")
+        print(f"Number of child nodes: {len(self.tactics_to_child_states.keys())}")
     
 # Example proof tree
 if __name__ == "__main__":  
+    
+    '''root = NeuralProofState(thm_statement="(p q : Prop) : ¬(p → q) ↔ p ∧ ¬q", new_proof=True)
+    print(root,"\n")'''
       
-    root = NeuralProofState("forall (p q: Prop), Or p q -> Or q p", new_proof=True)
+    root = NeuralProofState(thm_statement="∀ (p q: Prop), p ∨ q → q ∨ p", new_proof=True)
     print(root,"\n")
     
     next = root.apply_tactic("intro p q h")
@@ -60,7 +71,7 @@ if __name__ == "__main__":
     
     next = next.apply_tactic("left", goal_id=1)
     print(next,"\n")
-
+    
     next = next.apply_tactic("exact hq", goal_id=0)
     print(next, "\n")
     
