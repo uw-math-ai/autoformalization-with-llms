@@ -4,7 +4,11 @@ import re
 # Contains information about the current proof state, including the unsolved goals and previously used tactics
 
 class NeuralProofState():
-    def __init__(self, state=None, thm_statement=None, prev_tactics=None, informal_info=None, server=None, new_proof=False):   
+    
+    # TODO add server imports for definitions of real numbers, etc
+    def __init__(self, state=None, thm_statement=None, new_proof=False, 
+                 prev_tactics=None, informal_info=None, server=None, 
+                 neg_log_prob=None, parent=None):   
    
         self.informal_info = informal_info
                     
@@ -16,14 +20,19 @@ class NeuralProofState():
                 goal = self.make_valid_goal(thm_statement)
                 self.state = self.server.goal_start(goal)
             self.prev_tactics = []
+            self.neg_log_prob = 0
+            self.parent = None
         else:
             self.server = server
             self.state = state
             self.prev_tactics = prev_tactics
+            self.neg_log_prob = neg_log_prob
+            self.parent = parent
         
         self.tactics_to_child_states = {}
     
     # Turns a theorem statement into a valid goal
+    # TODO make this work reliably for statements with multiple hypothesis
     def make_valid_goal(self, thm_statement):
         string_groups = re.match(r"\((.*?)\)\s*:\s*(.*)",thm_statement)
         if string_groups:
@@ -35,11 +44,12 @@ class NeuralProofState():
             raise Exception("theorem statement is in an invalid format!")
         
     # TODO currently have to specify a goal to apply a tactic, which isn't ideal. Would like to just check all goals
+    # TODO add log probability as a parameter
     def apply_tactic(self, tactic, goal_id=0):
         new_state = self.server.goal_tactic(self.state, goal_id=goal_id, tactic=tactic)
         
-        child_node = NeuralProofState(state=new_state, original_state=self.original_state, 
-            prev_tactics=self.prev_tactics + [tactic], informal_info=self.informal_info, server=self.server)
+        child_node = NeuralProofState(state=new_state, prev_tactics=self.prev_tactics + [tactic], 
+                                      informal_info=self.informal_info, server=self.server, parent=self)
         
         self.tactics_to_child_states[tactic] = child_node
         return child_node
@@ -96,4 +106,3 @@ if __name__ == "__main__":
     
     next = next.apply_tactic("exact hp")
     print(next,"\n")
-    
