@@ -2,6 +2,50 @@ import heapq
 from typing import Any, Callable, Dict, List, Optional, Tuple
 import unittest
 
+# TODO: Implement the heuristics functions based on the interface of NeuralProofState
+def heuristic(neural_proof_state, generator_score):
+    """
+    Heuristic function for A* search.
+
+    Parameters:
+        neural_proof_state: The current state.
+        generator_score: The score assigned by the generator.
+
+    Returns:
+        The estimated cost from the current node to the goal.
+    """
+    return 0
+
+
+# TODO: Implement the get_neighbors function based on the interface of NeuralProofState and the generator
+# TODO: If feasible, this function should be implemented with multiple threads to speed up the search
+def get_neighbors(neural_proof_state):
+    """
+    Returns the neighbors of the current state and their scores assigned by the generator.
+
+    Parameters:
+        neural_proof_state: The current state.
+
+    Returns:
+        A tuple containing a list of neighbor nodes and a list of scores assigned by the generator.
+    """
+    return [], []
+
+
+# TODO: Implement the cost function based on the interface of NeuralProofState
+def cost(neural_proof_state, neighbor):
+    """
+    Returns the cost to move from the current state to a neighbor.
+
+    Parameters:
+        neural_proof_state: The current state.
+        neighbor: The neighbor node.
+
+    Returns:
+        The cost to move from the current state to the neighbor.
+    """
+    return 1
+
 
 def is_done(state: Any) -> bool:
     """
