@@ -55,8 +55,8 @@ if __name__ == "__main__":
     '''root = NeuralProofState(thm_statement="(p q : Prop) : ¬(p → q) ↔ p ∧ ¬q", new_proof=True)
     print(root,"\n")'''
       
-    next = NeuralProofState_withImports(thm_statement="forall (p q: Prop), Or p q -> Or q p", new_proof=True, imports=["Mathlib.Data.Nat.Factorization.Basic", "Mathlib.Data.Nat.Prime.Basic", "Mathlib.Data.Real.Basic"])
-    tactics = ["intro p q h","rcases h with hp | hq","right","exact hp","left","exact hq"]
+    next = NeuralProofState_withImports(thm_statement="forall (x y : ℝ) , x * y = 0 → x = 0 ∨ y = 0", new_proof=True, imports=["Mathlib.Data.Nat.Factorization.Basic", "Mathlib.Data.Nat.Prime.Basic", "Mathlib.Data.Real.Basic"])
+    tactics = ["intro x y", "contrapose","rw [not_or]","intro ⟨hx, hy⟩","exact mul_ne_zero hx hy]"]
     print(next,"\n")
     
     for tactic in tactics: 
