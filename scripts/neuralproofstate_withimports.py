@@ -56,7 +56,7 @@ if __name__ == "__main__":
     print(root,"\n")'''
       
     next = NeuralProofState_withImports(thm_statement="forall (x y : ℝ) , x * y = 0 → x = 0 ∨ y = 0", new_proof=True, imports=["Mathlib.Data.Nat.Factorization.Basic", "Mathlib.Data.Nat.Prime.Basic", "Mathlib.Data.Real.Basic"])
-    tactics = ["intro x y", "contrapose","rw [not_or]","intro ⟨hx, hy⟩","exact mul_ne_zero hx hy]"]
+    tactics = ["intro x y", "contrapose","rw [not_or]","intro h", "rcases h with ⟨hx, hy⟩","exact mul_ne_zero hx hy"]
     print(next,"\n")
     
     for tactic in tactics: 
