@@ -30,7 +30,6 @@ def predict_next_step(state, prev_tactics, informal_info=None, num_tactics=5):
             temperature=0.7,
             top_p=1,
             n=num_tactics,
-            logprobs=5,  # getting the log probabilities
         )
 
         tactics = response.choices
@@ -38,13 +37,11 @@ def predict_next_step(state, prev_tactics, informal_info=None, num_tactics=5):
 
         for choice in tactics:
             tactic = choice.text.strip()
-            logprobs = choice.logprobs.top_logprobs  # get log probs for each tactic
-
-            tactic_logprobs = {tactic.strip(): logprobs.get(tactic.strip(), float('-inf'))}
+            log_prob = choice.logprobs.token_logprobs[0]  # get log prob for each tactic
 
             tactics_list.append({
                 "tactic": tactic,
-                "log_probability": tactic_logprobs.get(tactic.strip(), float('-inf'))
+                "log_probability": log_prob
             })
 
         return tactics_list
