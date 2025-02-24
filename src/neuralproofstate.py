@@ -6,14 +6,13 @@ import re
 class NeuralProofState():
     
     # TODO add server imports for definitions of real numbers, etc
-    def __init__(self, state=None, thm_statement=None, new_proof=False, 
-                 prev_tactics=None, informal_info=None, server=None, 
-                 neg_log_prob=None, parent=None):   
-   
+    def __init__(self, state=None, thm_statement=None, prev_tactics=None, 
+                 informal_info=None, server=None, neg_log_prob=None, parent=None):   
+
         self.informal_info = informal_info
-                    
-        if new_proof:
-            self.server = Server(project_path="./")
+        self.server = server
+        
+        if thm_statement:  
             try:
                 self.state = self.server.goal_start(thm_statement)
             except Exception as e:
@@ -23,7 +22,6 @@ class NeuralProofState():
             self.neg_log_prob = 0
             self.parent = None
         else:
-            self.server = server
             self.state = state
             self.prev_tactics = prev_tactics
             self.neg_log_prob = neg_log_prob
@@ -42,7 +40,7 @@ class NeuralProofState():
             return goal
         else:
             raise Exception("theorem statement is in an invalid format!")
-        
+    
     # TODO currently have to specify a goal to apply a tactic, which isn't ideal. Would like to just check all goals
     # TODO add log probability as a parameter
     def apply_tactic(self, tactic, goal_id=0):
@@ -60,7 +58,7 @@ class NeuralProofState():
         
         if informal_info:
             prompt += f"""You should also consider the following information when choosing a tactic: \n{self.informal_info}\n"""
-            
+        
         prompt += f"""Give only the Lean tactic and no other information in your response. 
         Do not include 'by' at the start of your response, as it is already included in the theorem header."""
         
@@ -80,29 +78,3 @@ class NeuralProofState():
         print(f"Previous tactics: {self.prev_tactics}")
         print(f"Number of child nodes: {len(self.tactics_to_child_states.keys())}")
     
-# Example proof tree
-if __name__ == "__main__":  
-    
-    '''root = NeuralProofState(thm_statement="(p q : Prop) : ¬(p → q) ↔ p ∧ ¬q", new_proof=True)
-    print(root,"\n")'''
-      
-    root = NeuralProofState(thm_statement="∀ (p q: Prop), p ∨ q → q ∨ p", new_proof=True)
-    print(root,"\n")
-    
-    next = root.apply_tactic("intro p q h")
-    print(next,"\n")
-    
-    next = next.apply_tactic("rcases h with hp | hq")
-    print(next,"\n")
-    
-    next = next.apply_tactic("left", goal_id=1)
-    print(next,"\n")
-    
-    next = next.apply_tactic("exact hq", goal_id=0)
-    print(next, "\n")
-    
-    next = next.apply_tactic("right")
-    print(next,"\n")
-    
-    next = next.apply_tactic("exact hp")
-    print(next,"\n")
