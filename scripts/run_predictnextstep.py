@@ -8,7 +8,6 @@ from predictnextstep import predict_next_step
 
 dotenv.load_dotenv()
 
-# Setting up environment variables
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 os.environ["OPENAI_API_BASE"] = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
 
