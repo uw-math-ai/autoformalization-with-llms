@@ -53,13 +53,13 @@ class NeuralProofState():
         return child_node
 
     def to_prompt(self):
-        prompt = f"""Given the Lean 4 code: \n{self.state}\n Provide the next tactic to 
-        close all goals and prove the theorem. The previous tactics used to prove this theorem are as follows: \n{self.prev_tactics}\n"""
+        prompt = f"""Given the Lean 4 code: \n{self.state}\n Provide the next tactic 
+    to progress towards proving the theorem. The previous tactics used to prove this theorem are as follows: \n{self.prev_tactics}\n"""
         
-        if informal_info:
+        if self.informal_info:
             prompt += f"""You should also consider the following information when choosing a tactic: \n{self.informal_info}\n"""
         
-        prompt += f"""Give only the Lean tactic and no other information in your response. 
+        prompt += f"""Give only the next Lean tactic and no other information in your response. 
         Do not include 'by' at the start of your response, as it is already included in the theorem header."""
         
         return prompt
