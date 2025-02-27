@@ -16,8 +16,8 @@ def predict_next_step(state, prev_tactics, informal_info=None, num_tactics=5):
         response = text_completion(
             model="openai/gpt-3.5-turbo-instruct",
             prompt=prompt,
-            max_tokens=150,
-            temperature=0.8,
+            max_tokens=200,
+            temperature=0.5,
             top_p=1,
             n=num_tactics,
             logprobs=5, 
@@ -27,6 +27,12 @@ def predict_next_step(state, prev_tactics, informal_info=None, num_tactics=5):
 
         for choice in response.choices:
             tactic = choice.text.strip()
+            
+            # tactic = tactic.replace("tactic:", "").strip()
+            # tactic = tactic.replace("`", "").strip()
+            # tactic = tactic.replace("tactic", "").strip()
+            # tactic = tactic.replace(".", "").strip()
+
             log_prob = choice.logprobs.token_logprobs[0] if choice.logprobs else None
 
             tactics_list.append({
