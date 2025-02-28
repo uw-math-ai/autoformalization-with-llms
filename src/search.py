@@ -7,7 +7,7 @@ from pantograph.server import Server, TacticFailure, ServerError
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers.generation.utils import GenerateBeamEncoderDecoderOutput
-        
+
 
 class AStarSearchState():
     """
@@ -210,15 +210,19 @@ class AStarSearchAgent():
     """
     model: DojoModel
     env: PantographEnvironment
-    initial_state: AStarSearchState
+    heuristic: Optional[callable]
+    cost: Optional[callable]
+    guidance: Optional[callable]
 
-    def __init__(self, model: DojoModel, env: PantographEnvironment, initial_state: AStarSearchState):
+    def __init__(self, model: DojoModel, env: PantographEnvironment, heuristic=None, cost=None, guidance=None):
         assert env.server.is_automatic()
         self.model = model
         self.env = env
-        self.initial_state = initial_state
-
-    def guidance(self, state: AStarSearchState) -> List[float]:
+        self.heuristic = heuristic if heuristic else self.default_heuristic
+        self.cost = cost if cost else self.default_cost
+        self.guidance = guidance if guidance else self.default_guidance
+    
+    def default_guidance(self, state: AStarSearchState) -> List[float]:
         """
         Return a list of priorities determining which goal should be searched
         first. This will not be called on states with one or zero goals.
@@ -226,17 +230,17 @@ class AStarSearchAgent():
         priorities = [0.0] * len(state.goal_state.goals)
         return priorities
     
-    def cost(self, current: AStarSearchState, neighbor: AStarSearchState) -> float:
+    def default_cost(self, current: AStarSearchState, neighbor: AStarSearchState) -> float:
         """
         Cost function for A* search.
         """
         return 1.0
 
-    def heuristic(self, state: AStarSearchState) -> float:
+    def default_heuristic(self, state: AStarSearchState) -> float:
         """
         Heuristic function for A* search.
         """
-        return 1.0
+        return state.generator_score
     
     def get_successors(self, state: AStarSearchState) -> Tuple[List[AStarSearchAction], List[AStarSearchState]]:
         """
@@ -304,19 +308,29 @@ class AStarSearchAgent():
                     return self.reconstruct_path(came_from, successor), True
         
         return [], False
-    
-    
+
+
 if __name__ == '__main__':
     model = DojoModel()
     server = Server(project_path="./")
     env = PantographEnvironment(server)
-    goal_state = server.goal_start("∀ (p q: Prop), p ∨ q -> q ∨ p")
+    lean_sketch = """
+    theorem mathd_algebra_478
+      (b h v : ℝ)
+      (h₀ : 0 < b ∧ 0 < h ∧ 0 < v)
+      (h₁ : v = 1 / 3 * (b * h))
+      (h₂ : b = 30)
+      (h₃ : h = 13 / 2) :
+      v = 65 := by sorry
+    """
+    unit, = server.load_sorry(lean_sketch)
+    goal_state = unit.goal_state
     print(f"Initial state: {goal_state}")
     initial_state = AStarSearchState(
         goal_state=goal_state
     )
-    search_agent = AStarSearchAgent(model, env, initial_state)
-    actions, solved = search_agent.search(initial_state, max_steps=50, verbose=False)
+    search_agent = AStarSearchAgent(model, env)
+    actions, solved = search_agent.search(initial_state, max_steps=20, verbose=False)
     if solved:
         print("Proof found!")
         for action in actions:
