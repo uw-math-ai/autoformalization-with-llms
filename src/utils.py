@@ -65,6 +65,29 @@ def create_goal_state(server: Server, goal: str) -> GoalState:
     state = unit.goal_state
     return state
 
+def split_data(lean_path, output_dir="./", num_fold=10):
+    """
+    Split the goals into small folds and store them in seperate files.
+    """
+    goals = load_goals(lean_path)
+    num_fold = 10
+
+    keys = list(goals.keys())
+    num_goals = len(keys)
+    fold_size = num_goals // num_fold
+    folds = []
+    for i in range(num_fold):
+        start = i * fold_size
+        end = (i + 1) * fold_size if i != num_fold - 1 else num_goals
+        fold = {keys[j]: goals[keys[j]] for j in range(start, end)}
+        folds.append(fold)
+
+    for i, fold in enumerate(folds):
+        output_path = os.path.join(output_dir, f"fold_{i}.lean")
+        with open(output_path, "w") as f:
+            for _, value in fold.items():
+                f.write(f"{value}\n\n")
+
 
 if __name__ == "__main__":
     """
@@ -73,11 +96,15 @@ if __name__ == "__main__":
         https://github.com/yangky11/miniF2F-lean4
     """
     # Example usage
-    miniF2F_path = "./miniF2F-lean4"
-    import_path = os.path.join(miniF2F_path, "MiniF2F/Minif2fImport.lean")
-    lean_path = os.path.join(miniF2F_path, "MiniF2F/Valid.lean")
-    theorems = load_goals(lean_path)
-    server = create_minif2f_server(miniF2F_path, import_path)
-    goal = theorems['amc12a_2019_p21']
-    goal_state = create_goal_state(server, goal)
-    print(goal_state)
+    # miniF2F_path = "./miniF2F-lean4"
+    # import_path = os.path.join(miniF2F_path, "MiniF2F/Minif2fImport.lean")
+    # lean_path = os.path.join(miniF2F_path, "MiniF2F/Valid.lean")
+    # theorems = load_goals(lean_path)
+    # server = create_minif2f_server(miniF2F_path, import_path)
+    # goal = theorems['amc12a_2019_p21']
+    # print(goal)
+    # goal_state = create_goal_state(server, goal)
+    # print(goal_state)
+    lean_path = "./miniF2F-lean4/MiniF2F/Test.lean"
+    output_dir = "./data/test"
+    split_data(lean_path, output_dir=output_dir)

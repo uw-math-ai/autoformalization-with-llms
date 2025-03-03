@@ -154,6 +154,8 @@ class DojoModel():
 
         for i, seq in enumerate(outputs.sequences):
             tactic = self.tokenizer.decode(seq, skip_special_tokens=True)
+            if tactic.startswith("have") or tactic.startswith("let") or tactic.startswith("calc"):
+                continue
             seq_score = -(outputs.sequences_scores[i].item())
             action = AStarSearchAction(current_state, current_state.next_goal_id, tactic, seq_score)
             actions.append(action)
@@ -271,7 +273,7 @@ class AStarSearchAgent():
     def search(self,
                initial_state: AStarSearchState,
                max_steps: int = 100,
-               verbose: bool = False) -> Tuple[List[AStarSearchAction], bool]:
+               verbose: bool = False) -> Tuple[List[AStarSearchAction], bool, int, str]:
         """
         Executes proof search on this state
         """
@@ -287,7 +289,8 @@ class AStarSearchAgent():
         step = 0
 
         while len(queue) > 0 and step < max_steps:
-            print(f"Step {step}: len(queue)={len(queue)}")
+            if verbose:
+                print(f"Step {step}: len(queue)={len(queue)}")
             step += 1
             _, g_current, current = heapq.heappop(queue)
 
@@ -305,9 +308,12 @@ class AStarSearchAgent():
                     f_neighbor = tentative_g + self.heuristic(successor)
                     heapq.heappush(queue, (f_neighbor, tentative_g, successor))
                 if successor.is_terminal:
-                    return self.reconstruct_path(came_from, successor), True
+                    return self.reconstruct_path(came_from, successor), True, step, "Proof found."
         
-        return [], False
+        if len(queue) == 0:
+            return [], False, step, "No more states to explore."
+        if step >= max_steps:
+            return [], False, step, "Max steps reached."
 
 
 if __name__ == '__main__':
@@ -330,7 +336,7 @@ if __name__ == '__main__':
         goal_state=goal_state
     )
     search_agent = AStarSearchAgent(model, env)
-    actions, solved = search_agent.search(initial_state, max_steps=20, verbose=False)
+    actions, solved, _, _ = search_agent.search(initial_state, max_steps=20, verbose=False)
     if solved:
         print("Proof found!")
         for action in actions:
