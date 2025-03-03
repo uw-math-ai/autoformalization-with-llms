@@ -23,13 +23,16 @@ class TestNeuralProofState(unittest.TestCase):
     def test_make_valid_goal(self):
         
         server = Server(project_path="./")
-        
+
         root = NeuralProofState(thm_statement="(p q : Prop) : ¬(p → q) ↔ p ∧ ¬q", server=server)
         self.assertEqual(str(root.state), "\n⊢ forall (p q : Prop), ¬(p → q) ↔ p ∧ ¬q")
     
     # TODO: Write test for theorem with multiple context statements/hypothesis
     def test_complex_thm_statement(self):
-        self.assertTrue(True)
+        server = Server(imports=["Mathlib.Data.Nat.Factorization.Basic","Mathlib.Data.Nat.Prime.Basic"], 
+                        project_path="./")
+        root = NeuralProofState(thm_statement="(n : ℕ) (h : n > 0) : n ≥ 1", server=server)
+        self.assertEqual(str(root.state), "\n⊢ forall (n : ℕ) (h : n > 0), n ≥ 1")
 
 if __name__ == '__main__':
     unittest.main()
