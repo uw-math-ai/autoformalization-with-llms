@@ -31,6 +31,9 @@ def predict_next_step(nps: NeuralProofState, num_tactics=5, **kwargs):
         # print(logprobs)
         
         # print(response)
+        
+        # print(response)
+        # print([choice.message.content for choice in response.choices])
 
         tactics_list = []
 
