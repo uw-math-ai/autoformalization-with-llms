@@ -178,7 +178,7 @@ class PantographEnvironment():
     def __init__(self, server):
         self.server = server
 
-    def step(self, state: AStarSearchState, goal_id: int, action: AStarSearchAction) \
+    def step(self, state: AStarSearchState, goal_id: int, action: AStarSearchAction, actions: List[AStarSearchAction]) \
             -> Tuple[AStarSearchState, str, bool]:
         """
         Apply an action to a state and return the next state and feedback.
@@ -186,10 +186,10 @@ class PantographEnvironment():
         feedback = ""
         result_state = None
         done = False
-
+        tactics = [action.tactic for action in actions]
         try:
-            goal_state = state.goal_state
-            next_goal_state = self.server.goal_tactic(goal_state, goal_id, action.tactic)
+            unit = self.server.load_sorry("\n".join(tactics + ["sorry"]))
+            next_goal_state = unit[0].goal_state
             result_state = AStarSearchState(
                 goal_state=next_goal_state,
                 generator_score=action.generator_score,
@@ -244,15 +244,16 @@ class AStarSearchAgent():
         """
         return state.generator_score
     
-    def get_successors(self, state: AStarSearchState) -> Tuple[List[AStarSearchAction], List[AStarSearchState]]:
+    def get_successors(self, state: AStarSearchState, came_from: Dict[AStarSearchState, AStarSearchAction]) -> Tuple[List[AStarSearchAction], List[AStarSearchState]]:
         """
         Get the successors of the current state.
         """
         actions = self.model.generate_actions(state)
+        print(actions)
         compiled_actions = []
         successors = []
         for action in actions:
-            next_state, feedback, done = self.env.step(state, state.next_goal_id, action)
+            next_state, feedback, done = self.env.step(state, state.next_goal_id, action, self.reconstruct_path(came_from=came_from, current=state))
             if done:
                 compiled_actions.append(action)
                 successors.append(next_state)
@@ -294,7 +295,7 @@ class AStarSearchAgent():
             step += 1
             _, g_current, current = heapq.heappop(queue)
 
-            actions, successors = self.get_successors(current)
+            actions, successors = self.get_successors(current, came_from)
             if verbose:
                 print(f"Current state: {current}")
                 for successor in successors:
