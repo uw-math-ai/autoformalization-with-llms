@@ -20,9 +20,11 @@ class AStarSearchState():
     generator_score: float
     parent: Optional['AStarSearchState']
     parent_goal_id: Optional[int]
+    theorem: str
     
-    def __init__(self, goal_state, priorities=None, generator_score=None, parent=None, parent_goal_id=None):
+    def __init__(self, goal_state, theorem, priorities=None, generator_score=None, parent=None, parent_goal_id=None):
         self.goal_state = goal_state
+        self.theorem = theorem
         self.priorities = priorities if priorities is not None else [0.0] * len(goal_state.goals)
         self.generator_score = generator_score if generator_score is not None else 0.0
         self.parent = parent
@@ -188,10 +190,11 @@ class PantographEnvironment():
         done = False
         tactics = [action.tactic for action in actions]
         try:
-            unit = self.server.load_sorry("\n".join(tactics + ["sorry"]))
+            unit = self.server.load_sorry("\n".join([state.theorem] + tactics + ["sorry"]))
             next_goal_state = unit[0].goal_state
             result_state = AStarSearchState(
                 goal_state=next_goal_state,
+                theorem=state.theorem,
                 generator_score=action.generator_score,
                 parent=state,
                 parent_goal_id=goal_id
