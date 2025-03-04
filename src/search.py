@@ -249,7 +249,6 @@ class AStarSearchAgent():
         Get the successors of the current state.
         """
         actions = self.model.generate_actions(state)
-        print(actions)
         compiled_actions = []
         successors = []
         for action in actions:
