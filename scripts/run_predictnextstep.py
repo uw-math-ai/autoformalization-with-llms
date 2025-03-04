@@ -5,6 +5,7 @@ import dotenv
 sys.path.append(os.path.join(os.path.dirname(__file__), '../src'))
 
 from predictnextstep import predict_next_step
+from neuralproofstate import NeuralProofState
 
 dotenv.load_dotenv()
 
@@ -17,8 +18,11 @@ if __name__ == "__main__":
 
     informal_info = """You may want to consider associativity of addition in this proof.
         The goal is to prove that addition is associative in natural numbers."""
+        
+        
+    nps = NeuralProofState(state=state, prev_tactics=prev_tactics, informal_info=informal_info)
 
-    tactics = predict_next_step(state, prev_tactics)
+    tactics = predict_next_step(nps, num_tactics=5, temperature=0.5)
 
     print("Predicted next steps:")
     for tactic in tactics:

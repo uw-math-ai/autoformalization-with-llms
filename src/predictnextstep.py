@@ -1,43 +1,49 @@
 from neuralproofstate import NeuralProofState
 import os
 import dotenv
-from litellm import text_completion
+from litellm import completion
 
 dotenv.load_dotenv()
 
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
-os.environ["OPENAI_API_BASE"] = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
 
-def predict_next_step(state, prev_tactics, informal_info=None, num_tactics=5):
-    proof_state = NeuralProofState(state=state, prev_tactics=prev_tactics, informal_info=informal_info)
-    prompt = proof_state.to_prompt()
+def predict_next_step(nps: NeuralProofState, num_tactics=5, **kwargs):
+    prompt = nps.to_prompt()
+    
+    params = {
+        "model": "gpt-4o-mini",
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 200,
+        "temperature": 0.5,
+        "top_p": 1,
+        "n": num_tactics,
+        "logprobs": True, 
+    }
+    
+    params.update(kwargs)
 
     try:
-        response = text_completion(
-            model="openai/gpt-3.5-turbo-instruct",
-            prompt=prompt,
-            max_tokens=200,
-            temperature=0.5,
-            top_p=1,
-            n=num_tactics,
-            logprobs=5, 
-        )
+        response = completion(**params)
+        # print(f'{response['choices'][0]['logprobs']}')
+        # choice = response['choices'][0]  # Assuming you want the first choice
+        # logprobs = [token.logprob for token in choice['logprobs']['content']]
+        # print(choice['message'])
+        # print(logprobs)
+        
+        # print(response)
 
         tactics_list = []
 
         for choice in response.choices:
-            tactic = choice.text.strip()
-            
-            # tactic = tactic.replace("tactic:", "").strip()
-            # tactic = tactic.replace("`", "").strip()
-            # tactic = tactic.replace("tactic", "").strip()
-            # tactic = tactic.replace(".", "").strip()
-
-            log_prob = choice.logprobs.token_logprobs[0] if choice.logprobs else None
+            tactic = choice.message["content"].strip()
+            if choice.logprobs:
+                sum_logprob = sum(token.logprob for token in choice.logprobs.content)
+            else:
+                sum_logprob = None
 
             tactics_list.append({
                 "tactic": tactic,
-                "log_probability": log_prob
+                "log_probability": sum_logprob
             })
 
         return tactics_list
