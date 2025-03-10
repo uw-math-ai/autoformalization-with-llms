@@ -15,7 +15,7 @@ class AStarSearchState():
     Represents a state in the A* search algorithm.
     """
 
-    goal_state: GoalState
+    state: GoalState
     priorities: list[float]
     generator_score: float
     # parent: Optional['AStarSearchState']
@@ -29,7 +29,7 @@ class AStarSearchState():
             # parent=None,
             # parent_goal_id=None
         ):
-        self.goal_state = goal_state
+        self.state = goal_state
         if priorities is not None:
             self.priorities = priorities
         elif goal_state is None:
@@ -52,19 +52,19 @@ class AStarSearchState():
     
     @property  
     def is_terminal(self):
-        return self.goal_state is None or self.goal_state.is_solved
+        return self.state is None or self.state.is_solved
     
     def __str__(self):
-        return f"AStarSearchState(goal_state={self.goal_state}, generator_score={self.generator_score}, priorities={self.priorities})"
+        return f"AStarSearchState(goal_state={self.state}, generator_score={self.generator_score}, priorities={self.priorities})"
     
     def __lt__(self, other):
         return self.generator_score < other.generator_score
     
     def __eq__(self, other):
-        return isinstance(other, AStarSearchState) and self.goal_state == other.goal_state
+        return isinstance(other, AStarSearchState) and self.state == other.state
     
     def __hash__(self):
-        return hash(self.goal_state.state_id) if self.goal_state is not None else hash(None)
+        return hash(self.state.state_id) if self.state is not None else hash(None)
 
 
 class AStarSearchAction():
@@ -140,7 +140,7 @@ class DojoModel():
         """
         Formats the prompt for the model based on the goal to solve.
         """
-        goal = current_state.goal_state.goals[current_state.next_goal_id]
+        goal = current_state.state.goals[current_state.next_goal_id]
         prompt = str(goal)
         
         return prompt
@@ -200,7 +200,7 @@ class PantographEnvironment():
          done = False
  
          try:
-             goal_state = state.goal_state
+             goal_state = state.state
              next_goal_state = self.server.goal_tactic(goal_state, goal_id, action.tactic)
              result_state = AStarSearchState(
                  goal_state=next_goal_state,
@@ -284,7 +284,7 @@ class AStarSearchAgent():
         Return a list of priorities determining which goal should be searched
         first. This will not be called on states with one or zero goals.
         """
-        priorities = [0.0] * len(state.goal_state.goals)
+        priorities = [0.0] * len(state.state.goals)
         return priorities
     
     def default_cost(self, current: AStarSearchState, neighbor: AStarSearchState) -> float:
