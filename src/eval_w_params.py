@@ -20,25 +20,26 @@ def get_imports_val(imports_url = "https://raw.githubusercontent.com/yangky11/mi
 
 def evaluate_sketch(server, env, sketch, model, verbose):
     try:
-        unit = server.load_sorry(sketch + " sorry")
-        goal_state = unit[0].goal_state
-        if goal_state is not None:
-            initial_state = AStarSearchState(
-                goal_state=goal_state,
-                theorem = sketch
-            )
-            search_agent = AStarSearchAgent(model, env)
-        else:
-            result = {
-                "theorem": sketch,
-                "steps": 0,
-                "success": "False",
-                "feedback": "No goals",
-                "proof": "",
-            }
-            print(result)
-            return result
-        actions, solved, step, feedback = search_agent.search(initial_state, max_steps=20, verbose=verbose)
+        # unit = server.load_sorry(sketch + " sorry")
+        # goal_state = unit[0].goal_state
+        # if goal_state is not None:
+        #     initial_state = AStarSearchState(
+        #         goal_state=goal_state,
+        #         theorem = sketch
+        #     )
+        #     search_agent = AStarSearchAgent(model, env)
+        # else:
+        #     result = {
+        #         "theorem": sketch,
+        #         "steps": 0,
+        #         "success": "False",
+        #         "feedback": "No goals",
+        #         "proof": "",
+        #     }
+        #     print(result)
+        #     return result
+        search_agent = AStarSearchAgent(model, env)
+        actions, solved, step, feedback = search_agent.search(sketch, max_steps=20, verbose=verbose)
         if solved:
             proof = "\n".join([action.to_code() for action in actions])
             result = {
@@ -50,6 +51,7 @@ def evaluate_sketch(server, env, sketch, model, verbose):
             }
             print(result)
         else:
+            print(f"Managed to start searching but failed to prove")
             result = {
                 "theorem": sketch,
                 "steps": step,

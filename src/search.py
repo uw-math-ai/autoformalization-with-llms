@@ -234,7 +234,6 @@ class PantographEnvironment():
         done = False
         try:
             sketch = self.actions_to_sketch(lean_sketch, goal_id, action, actions)
-            print(repr(sketch))
             unit = self.server.load_sorry(sketch)
             next_goal_state = unit[0].goal_state
             if next_goal_state is None:
@@ -416,16 +415,12 @@ if __name__ == '__main__':
     model = DojoModel()
     server = Server(project_path="./", imports=['Mathlib.Data.Real.Cardinality', 'Mathlib.Data.Real.Basic'])
     env = PantographEnvironment(server)
-    lean_sketch = \
-"""
-theorem mathd_algebra_478 :
-  1 + 1 = 2 := by
-"""
+    lean_sketch = 'theorem mathd_algebra_419\n  (a b : ℝ)\n  (h₀ : a = -1)\n  (h₁ : b = 5) :\n  -a - b^2 + 3 * (a * b) = -39 := by '
     search_agent = AStarSearchAgent(model, env)
-    actions, solved, _, _ = search_agent.search(lean_sketch=lean_sketch, max_steps=20, verbose=False)
+    actions, solved, steps, feedback = search_agent.search(lean_sketch=lean_sketch, max_steps=20, verbose=False)
     if solved:
-        print("Proof found!")
+        print(f"Proof found in {steps} steps!")
         for action in actions:
             print(action.to_code())
     else:
-        print("No proof found.")
+        print(f"No proof found: {feedback}")
