@@ -18,17 +18,27 @@ class AStarSearchState():
     goal_state: GoalState
     priorities: list[float]
     generator_score: float
-    parent: Optional['AStarSearchState']
-    parent_goal_id: Optional[int]
-    theorem: str
+    # parent: Optional['AStarSearchState']
+    # parent_goal_id: Optional[int]
     
-    def __init__(self, goal_state, theorem, priorities=None, generator_score=None, parent=None, parent_goal_id=None):
+    def __init__(
+            self,
+            goal_state,
+            priorities=None,
+            generator_score=None,
+            # parent=None,
+            # parent_goal_id=None
+        ):
         self.goal_state = goal_state
-        self.theorem = theorem
-        self.priorities = priorities if priorities is not None else [0.0] * len(goal_state.goals)
+        if priorities is not None:
+            self.priorities = priorities
+        elif goal_state is None:
+            self.priorities = []
+        else:
+            self.priorities = [0.0] * len(goal_state.goals)
         self.generator_score = generator_score if generator_score is not None else 0.0
-        self.parent = parent
-        self.parent_goal_id = parent_goal_id
+        # self.parent = parent
+        # self.parent_goal_id = parent_goal_id
 
     def update_priorities(self, priorities):
         self.priorities = priorities
@@ -42,7 +52,7 @@ class AStarSearchState():
     
     @property  
     def is_terminal(self):
-        return self.goal_state.is_solved
+        return self.goal_state is None or self.goal_state.is_solved
     
     def __str__(self):
         return f"AStarSearchState(goal_state={self.goal_state}, generator_score={self.generator_score}, priorities={self.priorities})"
@@ -54,7 +64,7 @@ class AStarSearchState():
         return isinstance(other, AStarSearchState) and self.goal_state == other.goal_state
     
     def __hash__(self):
-        return hash(self.goal_state.state_id)
+        return hash(self.goal_state.state_id) if self.goal_state is not None else hash(None)
 
 
 class AStarSearchAction():
@@ -180,7 +190,41 @@ class PantographEnvironment():
     def __init__(self, server):
         self.server = server
 
-    def step(self, state: AStarSearchState, goal_id: int, action: AStarSearchAction, actions: List[AStarSearchAction]) \
+    def step(self, state: AStarSearchState, goal_id: int, action: AStarSearchAction) \
+             -> Tuple[AStarSearchState, str, bool]:
+         """
+         Apply an action to a state and return the next state and feedback.
+         """
+         feedback = ""
+         result_state = None
+         done = False
+ 
+         try:
+             goal_state = state.goal_state
+             next_goal_state = self.server.goal_tactic(goal_state, goal_id, action.tactic)
+             result_state = AStarSearchState(
+                 goal_state=next_goal_state,
+                 generator_score=action.generator_score,
+                 parent=state,
+                 parent_goal_id=goal_id
+             )
+             done = True
+         except TacticFailure as t:
+             feedback = str(t)
+         except ServerError as e:
+             feedback = f"Server Error: {e}"
+ 
+         action.update_result_state(result_state, feedback)
+         return result_state, feedback, done
+    
+    def step_w_load_sorry(
+            self,
+            lean_sketch: str,
+            state: AStarSearchState, 
+            goal_id: int, 
+            action: AStarSearchAction, 
+            actions: List[AStarSearchAction]
+        ) \
             -> Tuple[AStarSearchState, str, bool]:
         """
         Apply an action to a state and return the next state and feedback.
@@ -188,16 +232,19 @@ class PantographEnvironment():
         feedback = ""
         result_state = None
         done = False
-        tactics = [action.tactic for action in actions]
         try:
-            unit = self.server.load_sorry("\n".join([state.theorem] + tactics + ["sorry"]))
+            sketch = self.actions_to_sketch(lean_sketch, goal_id, action, actions)
+            print(repr(sketch))
+            unit = self.server.load_sorry(sketch)
             next_goal_state = unit[0].goal_state
+            if next_goal_state is None:
+                if len(unit[0].messages) != 0 and not any("no goals to be solved" in s for s in unit[0].messages):
+                    raise TacticFailure(unit[0].messages[0])
             result_state = AStarSearchState(
                 goal_state=next_goal_state,
-                theorem=state.theorem,
                 generator_score=action.generator_score,
-                parent=state,
-                parent_goal_id=goal_id
+                # parent=state,
+                # parent_goal_id=goal_id
             )
             done = True
         except TacticFailure as t:
@@ -208,6 +255,12 @@ class PantographEnvironment():
         action.update_result_state(result_state, feedback)
         return result_state, feedback, done
     
+    def actions_to_sketch(self, lean_sketch: str, goal_id: int, action: AStarSearchAction, actions: List[AStarSearchAction]) -> str:
+        """
+        Convert a list of actions to a sketch.
+        """
+        sketch = "\n  ".join([lean_sketch] + [a.to_code() for a in actions] + [action.to_code()] + ["sorry"])
+        return sketch
 
 class AStarSearchAgent():
     """
@@ -247,7 +300,8 @@ class AStarSearchAgent():
         """
         return state.generator_score
     
-    def get_successors(self, state: AStarSearchState, came_from: Dict[AStarSearchState, AStarSearchAction]) -> Tuple[List[AStarSearchAction], List[AStarSearchState]]:
+    def get_successors(self, state: AStarSearchState) \
+            -> Tuple[List[AStarSearchAction], List[AStarSearchState]]:
         """
         Get the successors of the current state.
         """
@@ -255,7 +309,33 @@ class AStarSearchAgent():
         compiled_actions = []
         successors = []
         for action in actions:
-            next_state, feedback, done = self.env.step(state, state.next_goal_id, action, self.reconstruct_path(came_from=came_from, current=state))
+            next_state, feedback, done = self.env.step(state, state.next_goal_id, action)
+            if done:
+                compiled_actions.append(action)
+                successors.append(next_state)
+        return compiled_actions, successors
+    
+    def get_successors_w_load_sorry(
+            self,
+            lean_sketch: str,
+            state: AStarSearchState,
+            came_from: Dict[AStarSearchState, AStarSearchAction]
+        ) \
+            -> Tuple[List[AStarSearchAction], List[AStarSearchState]]:
+        """
+        Get the successors of the current state.
+        """
+        actions = self.model.generate_actions(state)
+        compiled_actions = []
+        successors = []
+        for action in actions:
+            next_state, feedback, done = self.env.step_w_load_sorry(
+                lean_sketch=lean_sketch,
+                state=state,
+                goal_id=state.next_goal_id,
+                action=action, 
+                actions=self.reconstruct_path(came_from=came_from, current=state)
+            )
             if done:
                 compiled_actions.append(action)
                 successors.append(next_state)
@@ -274,15 +354,28 @@ class AStarSearchAgent():
         return path
 
     def search(self,
-               initial_state: AStarSearchState,
+               lean_sketch: str,
                max_steps: int = 100,
                verbose: bool = False) -> Tuple[List[AStarSearchAction], bool, int, str]:
         """
         Executes proof search on this state
         """
-
-        if initial_state.is_terminal:
-            return [], True
+        initial_sketch = lean_sketch.strip('\n ')
+        unit = self.env.server.load_sorry(initial_sketch + " sorry")
+        goal_state = unit[0].goal_state
+        if goal_state is None:
+            if len(unit[0].messages) == 0 or any("no goals to be solved" in s for s in unit[0].messages):
+                if verbose:
+                    print("No goals to solve.")
+                return [], True, 0, "No goals to solve."
+            else:
+                if verbose:
+                    print("Failed to create a goal state.")
+                return [], False, 0, "Failed to create a goal state"
+        
+        initial_state = AStarSearchState(
+            goal_state=goal_state
+        )
     
         # Priority queue storing tuples of (f_score, g_score, current_node)
         queue = []
@@ -297,7 +390,7 @@ class AStarSearchAgent():
             step += 1
             _, g_current, current = heapq.heappop(queue)
 
-            actions, successors = self.get_successors(current, came_from)
+            actions, successors = self.get_successors_w_load_sorry(initial_sketch, current, came_from)
             if verbose:
                 print(f"Current state: {current}")
                 for successor in successors:
@@ -321,25 +414,15 @@ class AStarSearchAgent():
 
 if __name__ == '__main__':
     model = DojoModel()
-    server = Server(project_path="./")
+    server = Server(project_path="./", imports=['Mathlib.Data.Real.Cardinality', 'Mathlib.Data.Real.Basic'])
     env = PantographEnvironment(server)
-    lean_sketch = """
-    theorem mathd_algebra_478
-      (b h v : ℝ)
-      (h₀ : 0 < b ∧ 0 < h ∧ 0 < v)
-      (h₁ : v = 1 / 3 * (b * h))
-      (h₂ : b = 30)
-      (h₃ : h = 13 / 2) :
-      v = 65 := by sorry
-    """
-    unit, = server.load_sorry(lean_sketch)
-    goal_state = unit.goal_state
-    print(f"Initial state: {goal_state}")
-    initial_state = AStarSearchState(
-        goal_state=goal_state
-    )
+    lean_sketch = \
+"""
+theorem mathd_algebra_478 :
+  1 + 1 = 2 := by
+"""
     search_agent = AStarSearchAgent(model, env)
-    actions, solved, _, _ = search_agent.search(initial_state, max_steps=20, verbose=False)
+    actions, solved, _, _ = search_agent.search(lean_sketch=lean_sketch, max_steps=20, verbose=False)
     if solved:
         print("Proof found!")
         for action in actions:
