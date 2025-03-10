@@ -18,7 +18,7 @@ def get_imports_val(imports_url = "https://raw.githubusercontent.com/yangky11/mi
     validation = validation[3:27]
     return imports, validation
 
-def evaluate_sketch(server, env, sketch, model, verbose):
+def evaluate_sketch(server, env, sketch, model, verbose, heuristic=None):
     try:
         # unit = server.load_sorry(sketch + " sorry")
         # goal_state = unit[0].goal_state
@@ -38,7 +38,7 @@ def evaluate_sketch(server, env, sketch, model, verbose):
         #     }
         #     print(result)
         #     return result
-        search_agent = AStarSearchAgent(model, env)
+        search_agent = AStarSearchAgent(model, env, heuristic) if heuristic else AStarSearchAgent(model, env)
         actions, solved, step, feedback = search_agent.search(sketch, max_steps=20, verbose=verbose)
         if solved:
             proof = "\n".join([action.to_code() for action in actions])
@@ -76,7 +76,7 @@ def write_results(results):
         writer = csv.DictWriter(file, fieldnames=["theorem", "steps", "success", "feedback", "proof"])
         writer.writeheader()
         writer.writerows(results)
-def evaluate(model=None, num_threads=4, verbose=False):
+def evaluate(model=None, num_threads=4, verbose=False, heuristic=None):
     imports, validation = get_imports_val()
     server = Server(project_path="./", imports=imports) # build the minif2f-imports file
     if model is None:
@@ -87,7 +87,7 @@ def evaluate(model=None, num_threads=4, verbose=False):
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         for lean_code in validation:
             sketch = lean_code.split("sorry")[0]
-            future = executor.submit(evaluate_sketch, server, env, sketch, model, verbose)
+            future = executor.submit(evaluate_sketch, server, env, sketch, model, verbose, heuristic)
             futures.append(future)
         
         for future in as_completed(futures):
