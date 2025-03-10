@@ -24,16 +24,6 @@ def predict_next_step(nps: NeuralProofState, num_tactics=5, **kwargs):
 
     try:
         response = completion(**params)
-        # print(f'{response['choices'][0]['logprobs']}')
-        # choice = response['choices'][0]  # Assuming you want the first choice
-        # logprobs = [token.logprob for token in choice['logprobs']['content']]
-        # print(choice['message'])
-        # print(logprobs)
-        
-        # print(response)
-        
-        # print(response)
-        # print([choice.message.content for choice in response.choices])
 
         tactics_list = []
 
