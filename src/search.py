@@ -243,9 +243,11 @@ class PantographEnvironment():
             sketch = self.actions_to_sketch(lean_sketch, goal_id, action, actions)
             unit = self.server.load_sorry(sketch)
             next_goal_state = unit[0].goal_state
-            if next_goal_state is None:
-                if len(unit[0].messages) != 0 and not any("no goals to be solved" in s for s in unit[0].messages):
-                    raise TacticFailure(unit[0].messages[0])
+            error_messages = [s for s in unit[0].messages if "error" in s]
+            if len(error_messages) > 1:
+                raise TacticFailure(' '.join(error_messages))
+            elif len(error_messages) == 1 and "no goals to be solved" not in error_messages[0]:
+                raise TacticFailure(error_messages[0])
             result_state = AStarSearchState(
                 goal_state=next_goal_state,
                 generator_score=action.generator_score,
@@ -369,15 +371,19 @@ class AStarSearchAgent():
         initial_sketch = lean_sketch.strip('\n ')
         unit = self.env.server.load_sorry(initial_sketch + " sorry")
         goal_state = unit[0].goal_state
-        if goal_state is None:
-            if len(unit[0].messages) == 0 or any("no goals to be solved" in s for s in unit[0].messages):
-                if verbose:
-                    print("No goals to solve.")
-                return [], True, 0, "No goals to solve."
-            else:
-                if verbose:
-                    print("Failed to create a goal state.")
-                return [], False, 0, "Failed to create a goal state"
+        error_messages = [s for s in unit[0].messages if "error" in s]
+        if len(error_messages) > 1:
+            if verbose:
+                print("Failed to create a goal state.")
+            return [], False, 0, f"Failed to create a goal state: {" ".join(error_messages)}"
+        elif len(error_messages) == 1 and "no goals to be solved" not in error_messages[0]:
+            if verbose:
+                print("Failed to create a goal state.")
+            return [], False, 0, f"Failed to create a goal state: {error_messages[0]}"
+        elif goal_state is None:
+            if verbose:
+                print("No goals to solve.")
+            return [], False, 0, "No goals to solve."
         
         initial_state = AStarSearchState(
             goal_state=goal_state
@@ -422,12 +428,11 @@ if __name__ == '__main__':
     model = DojoModel()
     server = Server(project_path="./", imports=['Mathlib.Data.Real.Cardinality', 'Mathlib.Data.Real.Basic'])
     env = PantographEnvironment(server)
-    lean_sketch = """theorem mathd_algebra_141
-  (a b : ℝ)
-  (h₁ : (a * b)=180)
-  (h₂ : 2 * (a + b)=54) :
-  (a^2 + b^2) = 369 :=
-  by"""
+    lean_sketch = """theorem mathd_algebra_44
+  (s t : ℝ)
+  (h₀ : s = 9 - 2 * t)
+  (h₁ : t = 3 * s + 1) :
+  s = 1 ∧ t = 4 := by"""
     search_agent = AStarSearchAgent(model, env)
     actions, solved, steps, feedback = search_agent.search(lean_sketch=lean_sketch, max_steps=20, verbose=False)
     if solved:
