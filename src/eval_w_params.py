@@ -15,7 +15,7 @@ def get_imports_val(imports_url = "https://raw.githubusercontent.com/yangky11/mi
 
     request = requests.get(validation_url)
     validation = request.text.split("\n\n")
-    validation = validation[3:27]
+    validation = validation[51:100]
     return imports, validation
 
 def evaluate_sketch(server, env, sketch, model, verbose, heuristic=None):
@@ -39,7 +39,7 @@ def evaluate_sketch(server, env, sketch, model, verbose, heuristic=None):
         #     print(result)
         #     return result
         search_agent = AStarSearchAgent(model, env, heuristic) if heuristic else AStarSearchAgent(model, env)
-        actions, solved, step, feedback = search_agent.search(sketch, max_steps=20, verbose=verbose)
+        actions, solved, step, feedback = search_agent.search(sketch, max_steps=5, verbose=verbose)
         if solved:
             proof = "\n".join([action.to_code() for action in actions])
             result = {
@@ -110,10 +110,10 @@ def single_thread_evaluate(model=None, verbose=False, heuristic=None):
             print(sketch)
         results.append(evaluate_sketch(server, env, sketch, model, verbose, heuristic))
     write_results(results)
-
+from heuristics import goal_hypothesis_comparison
 if __name__ == "__main__":
     num_threads = 1
     if num_threads == 1:
-        single_thread_evaluate()
+        single_thread_evaluate(heuristic=goal_hypothesis_comparison)
     else:
         evaluate(num_threads=num_threads)
