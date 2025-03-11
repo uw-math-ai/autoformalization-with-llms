@@ -2,18 +2,20 @@ from neuralproofstate import NeuralProofState
 from pantograph.server import Server
 
 import numpy as np
-import torch
-import torch.nn.functional as F
-from transformers import AutoTokenizer, AutoModel
+
+import os
+from openai import OpenAI
+
+os.environ["OPENAI_API_KEY"] = "insert key here"
 
 # some experimental heuristics for ordering fringe nodes
 # search algo wants to minimize a given heuristic
 # TODO: test each of these on nanoF2F and see how each heuristic fares
 # TODO add case for a state having no goals
 
-def separate_goals_and_hyps(state):
+def separate_goals_and_hyps(state_string):
     # Split the input state by newlines
-    lines = state.split('\n')
+    lines = state_string.split('\n')
     
     goals = []
     hyps = []
@@ -23,53 +25,62 @@ def separate_goals_and_hyps(state):
             goals.append(line.strip())
         else:
             hyps.append(line.strip())
+            
+    print("hyps vector:"," ".join(hyps))
+    print("goals vector:", " ".join(goals))
     
-    return hyps, goals
+    return " ".join(hyps), " ".join(goals)
 
 # TODO: Add modes - maybe max cosine similarity is best metric, maybe average is better?
-def goal_hypothesis_comparison(neural_proof_state, print_info=False):
+def goal_hypothesis_comparison(proof_string=None, print_info=False):
     '''
     Gets the vector embeddings for the goals & hypothesis from an embedding model,
     then compares the cosine similarities of the goals & hypotheses
     '''
-    # TODO get a list of unproved goals and a list of unproved hypotheses
-    hyps, goals = separate_goals_and_hyps(str(neural_proof_state.state))
     
-    model_path = "ibm-granite/granite-embedding-278m-multilingual"
+    client = OpenAI()
     
+    '''if neural_proof_state is not None:
+        hyps, goals = separate_goals_and_hyps(str(neural_proof_state.state))
+    else:
+        hyps, goals = separate_goals_and_hyps(proof_string)'''
+    
+    hyps, goals = separate_goals_and_hyps(proof_string)
+        
     if len(goals) == 0 or len(hyps) == 0:
         return 0
 
-    # Load the model and tokenizer
-    model = AutoModel.from_pretrained(model_path)
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    model.eval()
+    response1 = client.embeddings.create(
+        input=goals,
+        model="text-embedding-3-small"
+    )
     
-    tokenized_goals = tokenizer(goals, padding=True, truncation=True, return_tensors='pt')
-    tokenized_hyps = tokenizer(hyps, padding=True, truncation=True, return_tensors='pt')
+    goal_embeddings = np.array(response1.data[0].embedding)
     
-    # encode queries
-    with torch.no_grad():
-        goals_output = model(**tokenized_goals)
-        hyps_output = model(**tokenized_hyps)
-
-        # Perform pooling. granite-embedding-278m-multilingual uses CLS Pooling
-        goal_embeddings = goals_output[0][:, 0]
-        hyp_embeddings = hyps_output[0][:, 0]
-
-    goal_embeddings = torch.nn.functional.normalize(goal_embeddings, dim=1)
-    hyp_embeddings = torch.nn.functional.normalize(hyp_embeddings, dim=1)
+    response2 = client.embeddings.create(
+        input=hyps,
+        model="text-embedding-3-small"
+    )
     
-    similarity_matrix = goal_embeddings @ hyp_embeddings.T
+    hyp_embeddings = np.array(response2.data[0].embedding)
+    
+    # similarity_matrix = goal_embeddings @ hyp_embeddings.T
+    
     if print_info:
-        print("goals & hyps:", goals, hyps)
+        '''print("goals & hyps:", goals, hyps)
         print("cosine similarity scores:", similarity_matrix)
         print("max similarity:",np.max(np.ravel(similarity_matrix)))
         print("min similarity:", np.min(np.ravel(similarity_matrix)))
-        print("mean similarity:", np.mean(np.ravel(similarity_matrix)))
+        print("mean similarity:", np.mean(np.ravel(similarity_matrix)))'''
+        print("max similarity:", np.inner(goal_embeddings, hyp_embeddings))
 
-    # TODO: Find a better monotonic function on [-1,1] (possibly [0,1])
-    return (1 - np.max(np.ravel(similarity_matrix))) / 2
+    # return -1 * np.log(np.max(np.ravel(similarity_matrix))) # Assuming nonneg cosine similarity
+    
+    normalized = 0.5 * (np.inner(goal_embeddings, hyp_embeddings) + 1) # make nonneg
+    
+    if np.inner(goal_embeddings, hyp_embeddings) < 0:
+        raise Exception("negative!")
+    return -1 * np.log(normalized)
     
 def compare_with_mathlib(neural_proof_state):
     pass
@@ -110,7 +121,7 @@ if __name__ == "__main__":
     server = Server(project_path="./")
     root = NeuralProofState(thm_statement="(p q : Prop) : ¬(p → q) ↔ p ∧ ¬q", server=server)
     root = root.apply_tactic("intro p q")
-    print(root.state)
-    print("number of goals:", goal_based(root))
-    print("number of hypothesis:", hypothesis_based(root))
+    print(root.state, "\n")
+    # print("number of goals:", goal_based(root))
+    # print("number of hypothesis:", hypothesis_based(root))
     print("vec comparison:", goal_hypothesis_comparison(root))
