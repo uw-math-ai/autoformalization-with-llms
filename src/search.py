@@ -4,7 +4,6 @@ from typing import List, Tuple, Optional, Dict
 
 from pantograph.expr import Expr, Tactic, GoalState, Goal
 from pantograph.server import Server, TacticFailure, ServerError
-import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers.generation.utils import GenerateBeamEncoderDecoderOutput
 
@@ -77,21 +76,29 @@ class AStarSearchAction():
     goal_id: int
     tactic: Tactic
     generator_score: float
-    result_state: Optional[AStarSearchState]
-    feedback: Optional[str]
+    # result_state: Optional[AStarSearchState]
+    # feedback: Optional[str]
 
 
-    def __init__(self, applied_state, goal_id, tactic, generator_score=None, result_state=None, feedback=None):
+    def __init__(
+            self,
+            applied_state,
+            goal_id,
+            tactic,
+            generator_score=None,
+            # result_state=None,
+            # feedback=None
+        ):
         self.applied_state = applied_state
         self.goal_id = goal_id
         self.tactic = tactic
         self.generator_score = generator_score if generator_score is not None else 0.0
-        self.result_state = result_state
-        self.feedback = feedback
+        # self.result_state = result_state
+        # self.feedback = feedback
 
-    def update_result_state(self, result_state, feedback=None):
-        self.result_state = result_state
-        self.feedback = feedback
+    # def update_result_state(self, result_state, feedback=None):
+    #     self.result_state = result_state
+    #     self.feedback = feedback
 
     def __str__(self):
         return f"AStarSearchAction(tactic={str(self.tactic)}, generator_score={self.generator_score})"
@@ -117,7 +124,7 @@ class DojoModel():
         Initializes the wrapper by loading the model and tokenizer.
         """
         model_name = "kaiyuy/leandojo-lean4-tacgen-byt5-small"
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cpu"
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
         self.model.to(self.device)
@@ -214,7 +221,7 @@ class PantographEnvironment():
          except ServerError as e:
              feedback = f"Server Error: {e}"
  
-         action.update_result_state(result_state, feedback)
+         # action.update_result_state(result_state, feedback)
          return result_state, feedback, done
     
     def step_w_load_sorry(
@@ -251,7 +258,7 @@ class PantographEnvironment():
         except ServerError as e:
             feedback = f"Server Error: {e}"
 
-        action.update_result_state(result_state, feedback)
+        # action.update_result_state(result_state, feedback)
         return result_state, feedback, done
     
     def actions_to_sketch(self, lean_sketch: str, goal_id: int, action: AStarSearchAction, actions: List[AStarSearchAction]) -> str:
@@ -415,7 +422,12 @@ if __name__ == '__main__':
     model = DojoModel()
     server = Server(project_path="./", imports=['Mathlib.Data.Real.Cardinality', 'Mathlib.Data.Real.Basic'])
     env = PantographEnvironment(server)
-    lean_sketch = 'theorem mathd_algebra_419\n  (a b : ℝ)\n  (h₀ : a = -1)\n  (h₁ : b = 5) :\n  -a - b^2 + 3 * (a * b) = -39 := by '
+    lean_sketch = """theorem mathd_algebra_141
+  (a b : ℝ)
+  (h₁ : (a * b)=180)
+  (h₂ : 2 * (a + b)=54) :
+  (a^2 + b^2) = 369 :=
+  by"""
     search_agent = AStarSearchAgent(model, env)
     actions, solved, steps, feedback = search_agent.search(lean_sketch=lean_sketch, max_steps=20, verbose=False)
     if solved:
