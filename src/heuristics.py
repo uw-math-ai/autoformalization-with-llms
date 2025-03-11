@@ -32,7 +32,7 @@ def separate_goals_and_hyps(state_string):
     return " ".join(hyps), " ".join(goals)
 
 # TODO: Add modes - maybe max cosine similarity is best metric, maybe average is better?
-def goal_hypothesis_comparison(proof_string=None, print_info=False):
+def goal_hypothesis_comparison(proof_state, proof_string=None, print_info=False):
     '''
     Gets the vector embeddings for the goals & hypothesis from an embedding model,
     then compares the cosine similarities of the goals & hypotheses
@@ -44,6 +44,9 @@ def goal_hypothesis_comparison(proof_string=None, print_info=False):
         hyps, goals = separate_goals_and_hyps(str(neural_proof_state.state))
     else:
         hyps, goals = separate_goals_and_hyps(proof_string)'''
+    
+    if proof_state is not None:
+        proof_string = proof_state.state()
     
     hyps, goals = separate_goals_and_hyps(proof_string)
         
