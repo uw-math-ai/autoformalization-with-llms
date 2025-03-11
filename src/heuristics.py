@@ -2,11 +2,13 @@ from neuralproofstate import NeuralProofState
 from pantograph.server import Server
 
 import numpy as np
-
+from functools import cache
 import os
 from openai import OpenAI
+import dotenv
 
-os.environ["OPENAI_API_KEY"] = "insert key here"
+dotenv.load_dotenv()
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
 # some experimental heuristics for ordering fringe nodes
 # search algo wants to minimize a given heuristic
@@ -32,6 +34,7 @@ def separate_goals_and_hyps(state_string):
     return " ".join(hyps), " ".join(goals)
 
 # TODO: Add modes - maybe max cosine similarity is best metric, maybe average is better?
+@cache
 def goal_hypothesis_comparison(proof_state, proof_string=None, print_info=False):
     '''
     Gets the vector embeddings for the goals & hypothesis from an embedding model,
@@ -46,8 +49,9 @@ def goal_hypothesis_comparison(proof_state, proof_string=None, print_info=False)
         hyps, goals = separate_goals_and_hyps(proof_string)'''
     
     if proof_state is not None:
-        proof_string = proof_state.state()
-    
+        proof_string = str(proof_state.state)
+    else:
+        return 0
     hyps, goals = separate_goals_and_hyps(proof_string)
         
     if len(goals) == 0 or len(hyps) == 0:
