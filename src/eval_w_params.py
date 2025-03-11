@@ -87,6 +87,7 @@ def evaluate(model=None, num_threads=4, verbose=False, heuristic=None):
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         for lean_code in validation:
             sketch = lean_code.split("sorry")[0]
+            print(sketch)
             future = executor.submit(evaluate_sketch, server, env, sketch, model, verbose, heuristic)
             futures.append(future)
         
@@ -96,5 +97,23 @@ def evaluate(model=None, num_threads=4, verbose=False, heuristic=None):
                 results.append(result)
     write_results(results)
 
+def single_thread_evaluate(model=None, verbose=False, heuristic=None):
+    imports, validation = get_imports_val()
+    server = Server(project_path="./", imports=imports)
+    if model is None:
+        model = DojoModel()
+    env = PantographEnvironment(server)
+    results = []
+    for lean_code in validation:
+        sketch = lean_code.split("sorry")[0]
+        if verbose:
+            print(sketch)
+        results.append(evaluate_sketch(server, env, sketch, model, verbose, heuristic))
+    write_results(results)
+
 if __name__ == "__main__":
-    evaluate(num_threads=16)
+    num_threads = 1
+    if num_threads == 1:
+        single_thread_evaluate()
+    else:
+        evaluate(num_threads=num_threads)
