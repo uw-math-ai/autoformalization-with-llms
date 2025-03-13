@@ -146,7 +146,7 @@ class DojoModel(GenerationModel):
         Initializes the wrapper by loading the model and tokenizer.
         """
         model_name = "kaiyuy/leandojo-lean4-tacgen-byt5-small"
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device if device else "cpu"
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
         self.model.to(self.device)
@@ -242,7 +242,7 @@ class LLMModel(GenerationModel):
         """
         goal = current_state.state.goals[current_state.next_goal_id]
         prompt = f"Given the Lean 4 proof state of a theorem: \n{goal}\n" + \
-        f"Provide the next tactic to progress towards proving the theorem." + \
+        f"Provide the next tactic to progress towards proving the theorem. " + \
         f"The previous code used to prove this theorem are as follows: \n{current_code}\n" + \
         f"Give only the next Lean tactic and no other information in your response."
       
