@@ -151,7 +151,7 @@ class DojoModel(GenerationModel):
         self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
         self.model.to(self.device)
         self.generate_config = {
-            "max_length": 1024,
+            "max_length": 50,
             "num_beams": 15,
             "length_penalty": 0.0,
             "do_sample": True,
@@ -491,8 +491,14 @@ class AStarSearchAgent():
             step += 1
             _, g_current, current = heapq.heappop(queue)
 
+            if verbose:
+                print(f"Start reconstructing path...")
             current_actions = self.reconstruct_path(came_from, current)
+            if verbose:
+                print(f"Start reconstructing code...")
             current_code = self.get_current_code(initial_sketch, current_actions)
+            if verbose:
+                print(f"Start generating successors...")
             actions, successors = self.get_successors(current, current_code)
             if verbose:
                 print(f"Current state: {current}")
@@ -516,16 +522,16 @@ class AStarSearchAgent():
 
 
 if __name__ == '__main__':
-    model = LLMModel()
-    server = Server(project_path="./", imports=['Mathlib.Data.Real.Cardinality', 'Mathlib.Data.Real.Basic'])
+    model = DojoModel()
+    server = Server(project_path="./", imports=['Mathlib.Data.Real.Sqrt', 'Mathlib.Data.Real.Basic'])
     env = PantographEnvironment(server)
-    lean_sketch = """theorem mathd_algebra_44
-  (s t : ℝ)
-  (h₀ : s = 9 - 2 * t)
-  (h₁ : t = 3 * s + 1) :
-  s = 1 ∧ t = 4 := by"""
+    lean_sketch = """theorem mathd_algebra_17
+  (a : ℝ)
+  (h₀ : Real.sqrt (4 + Real.sqrt (16 + 16 * a)) + Real.sqrt (1 + Real.sqrt (1 + a)) = 6) :
+  a = 8 := by
+  sorry"""
     search_agent = AStarSearchAgent(model, env)
-    actions, solved, steps, feedback = search_agent.search(lean_sketch=lean_sketch, max_steps=20, verbose=False)
+    actions, solved, steps, feedback = search_agent.search(lean_sketch=lean_sketch, max_steps=5, verbose=True)
     if solved:
         print(f"Proof found in {steps} steps!")
         for action in actions:
