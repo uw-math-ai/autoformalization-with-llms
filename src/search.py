@@ -1,11 +1,14 @@
 from abc import ABC, abstractmethod
 import heapq
 from typing import List, Tuple, Optional, Dict
+import os
 
-from pantograph.expr import Expr, Tactic, GoalState, Goal
-from pantograph.server import Server, TacticFailure, ServerError
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from transformers.generation.utils import GenerateBeamEncoderDecoderOutput
+import dotenv
+from litellm import completion
+from pantograph.expr import Tactic, GoalState
+from pantograph.server import Server, TacticFailure, ServerError
 
 
 class AStarSearchState():
@@ -79,7 +82,6 @@ class AStarSearchAction():
     # result_state: Optional[AStarSearchState]
     # feedback: Optional[str]
 
-
     def __init__(
             self,
             applied_state,
@@ -108,9 +110,29 @@ class AStarSearchAction():
         Convert the action to a string representation.
         """
         return str(self.tactic)
+      
+    def __eq__(self, other):
+        return isinstance(other, AStarSearchAction) and \
+            self.tactic == other.tactic and \
+            self.applied_state == other.applied_state and \
+            self.goal_id == other.goal_id
 
+class GenerationModel(ABC):
+    """
+    Interface for a generation model.
+    """
+    @abstractmethod
+    def generate_actions(self,
+            current_state: AStarSearchState,
+            current_code: str,
+            **generate_config
+        ) -> List[AStarSearchAction]:
+        """
+        Generates a list of actions based on the current state.
+        """
+        pass
 
-class DojoModel():
+class DojoModel(GenerationModel):
     """
     A generation model that uses LeanDojo
     """
@@ -124,7 +146,7 @@ class DojoModel():
         Initializes the wrapper by loading the model and tokenizer.
         """
         model_name = "kaiyuy/leandojo-lean4-tacgen-byt5-small"
-        self.device = "cpu"
+        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
         self.model.to(self.device)
@@ -152,7 +174,7 @@ class DojoModel():
         
         return prompt
 
-    def generate(self, prompt: str, **generate_config) -> str:
+    def generate(self, prompt: str, **generate_config) -> GenerateBeamEncoderDecoderOutput:
         """
         Generates text based on the provided prompt.
         """
@@ -169,24 +191,110 @@ class DojoModel():
         """
         Formats the generated text into the desired output structure.
         """
-        actions = []
+        results = {}
 
         for i, seq in enumerate(outputs.sequences):
             tactic = self.tokenizer.decode(seq, skip_special_tokens=True)
-            if tactic.startswith("have") or tactic.startswith("let") or tactic.startswith("calc"):
-                continue
             seq_score = -(outputs.sequences_scores[i].item())
+            if tactic in results:
+                results[tactic] = min(results[tactic], seq_score)
+            else:
+                results[tactic] = seq_score
+        
+        actions = []
+        for tactic, seq_score in results.items():
             action = AStarSearchAction(current_state, current_state.next_goal_id, tactic, seq_score)
             actions.append(action)
 
         return actions
 
-    def generate_actions(self, current_state: AStarSearchState, **generate_config) \
+    def generate_actions(self, current_state: AStarSearchState, current_code: str, **generate_config) \
           -> List[AStarSearchAction]:
         prompt = self.format_prompt(current_state)
         raw_output = self.generate(prompt, **generate_config)
-        return self.format_output(current_state, raw_output)
+        actions =  self.format_output(current_state, raw_output)
+        return actions
     
+class LLMModel(GenerationModel):
+    """
+    A generation model that uses the LLM API
+    """
+    def __init__(self, **generate_config):
+        """
+        Initializes the wrapper by loading the model and tokenizer.
+        """
+        dotenv.load_dotenv()
+        os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+        self.generate_config = {
+            "model": "gpt-4o-mini",
+            "max_tokens": 100,
+            "temperature": 1.0,
+            "top_p": 0.9,
+            "n": 10,
+            "logprobs": True, 
+        }
+        if generate_config:
+            self.generate_config.update(generate_config)
+
+    def format_prompt(self, current_state: AStarSearchState, current_code: str) -> str:
+        """
+        Formats the prompt for the model based on the goal to solve.
+        """
+        goal = current_state.state.goals[current_state.next_goal_id]
+        prompt = f"Given the Lean 4 proof state of a theorem: \n{goal}\n" + \
+        f"Provide the next tactic to progress towards proving the theorem." + \
+        f"The previous code used to prove this theorem are as follows: \n{current_code}\n" + \
+        f"Give only the next Lean tactic and no other information in your response."
+      
+        return prompt
+    
+    def generate(self, prompt: str, **generate_config):
+        """
+        Generates text based on the provided prompt.
+        """
+        params = {
+            "messages": [{"role": "user", "content": prompt}]
+        }
+        params.update(self.generate_config)
+        params.update(generate_config)
+
+        try:
+            response = completion(**params)
+            return response
+        except Exception as e:
+            return []
+        
+    def format_output(self, current_state: AStarSearchState, response) -> List[AStarSearchAction]:
+        """
+        Formats the generated text into the desired output structure.
+        """
+        results = {}
+
+        for choice in response.choices:
+            tactic = choice.message["content"].strip()
+            if choice.logprobs:
+                sum_logprob = sum(token.logprob for token in choice.logprobs.content)
+            else:
+                sum_logprob = None
+            
+            if tactic in results and results[tactic] is not None and sum_logprob is not None:
+                    results[tactic] = min(results[tactic], sum_logprob)
+            else:
+                results[tactic] = sum_logprob
+
+        actions = []
+        for tactic, sum_logprob in results.items():
+            action = AStarSearchAction(current_state, current_state.next_goal_id, tactic, -sum_logprob)
+            actions.append(action)
+
+        return actions
+
+    def generate_actions(self, current_state: AStarSearchState, current_code: str, **generate_config) \
+          -> List[AStarSearchAction]:
+        prompt = self.format_prompt(current_state, current_code)
+        response = self.generate(prompt, **generate_config)
+        actions = self.format_output(current_state, response)
+        return actions
 
 class PantographEnvironment():
     """
@@ -197,40 +305,12 @@ class PantographEnvironment():
     def __init__(self, server):
         self.server = server
 
-    def step(self, state: AStarSearchState, goal_id: int, action: AStarSearchAction) \
-             -> Tuple[AStarSearchState, str, bool]:
-         """
-         Apply an action to a state and return the next state and feedback.
-         """
-         feedback = ""
-         result_state = None
-         done = False
- 
-         try:
-             goal_state = state.state
-             next_goal_state = self.server.goal_tactic(goal_state, goal_id, action.tactic)
-             result_state = AStarSearchState(
-                 goal_state=next_goal_state,
-                 generator_score=action.generator_score,
-                 parent=state,
-                 parent_goal_id=goal_id
-             )
-             done = True
-         except TacticFailure as t:
-             feedback = str(t)
-         except ServerError as e:
-             feedback = f"Server Error: {e}"
- 
-         # action.update_result_state(result_state, feedback)
-         return result_state, feedback, done
-    
-    def step_w_load_sorry(
+    def step(
             self,
-            lean_sketch: str,
-            state: AStarSearchState, 
+            current_state: AStarSearchState,
+            current_code: str,
             goal_id: int, 
-            action: AStarSearchAction, 
-            actions: List[AStarSearchAction]
+            action: AStarSearchAction,
         ) \
             -> Tuple[AStarSearchState, str, bool]:
         """
@@ -240,7 +320,7 @@ class PantographEnvironment():
         result_state = None
         done = False
         try:
-            sketch = self.actions_to_sketch(lean_sketch, goal_id, action, actions)
+            sketch = self.add_action_to_sketch(current_state, current_code, goal_id, action)
             unit = self.server.load_sorry(sketch)
             next_goal_state = unit[0].goal_state
             error_messages = [s for s in unit[0].messages if "error" in s]
@@ -263,24 +343,38 @@ class PantographEnvironment():
         # action.update_result_state(result_state, feedback)
         return result_state, feedback, done
     
-    def actions_to_sketch(self, lean_sketch: str, goal_id: int, action: AStarSearchAction, actions: List[AStarSearchAction]) -> str:
+    # TODO: Need to apply tactic depending on the goal_id i.e. indentation and \mid
+    def add_action_to_sketch(
+            self,
+            current_state: AStarSearchState,
+            current_code: str,
+            goal_id: int,
+            action: AStarSearchAction
+        ) -> str:
         """
-        Convert a list of actions to a sketch.
+        Add an action to the current code.
         """
-        sketch = "\n  ".join([lean_sketch] + [a.to_code() for a in actions] + [action.to_code()] + ["sorry"])
+        sketch = current_code + "\n  " + action.to_code() + "\n  sorry"
         return sketch
 
 class AStarSearchAgent():
     """
     A search agent that uses A* search algorithm to find a solution.
     """
-    model: DojoModel
+    model: GenerationModel
     env: PantographEnvironment
     heuristic: Optional[callable]
     cost: Optional[callable]
     guidance: Optional[callable]
 
-    def __init__(self, model: DojoModel, env: PantographEnvironment, heuristic=None, cost=None, guidance=None):
+    def __init__(
+            self,
+            model: GenerationModel,
+            env: PantographEnvironment,
+            heuristic=None,
+            cost=None,
+            guidance=None
+        ):
         assert env.server.is_automatic()
         self.model = model
         self.env = env
@@ -308,48 +402,31 @@ class AStarSearchAgent():
         """
         return state.generator_score
     
-    def get_successors(self, state: AStarSearchState) \
+    def get_successors(self, current_state: AStarSearchState, current_code: str) \
             -> Tuple[List[AStarSearchAction], List[AStarSearchState]]:
         """
         Get the successors of the current state.
         """
-        actions = self.model.generate_actions(state)
+        actions = self.model.generate_actions(current_state=current_state, current_code=current_code)
         compiled_actions = []
         successors = []
         for action in actions:
-            next_state, feedback, done = self.env.step(state, state.next_goal_id, action)
-            if done:
-                compiled_actions.append(action)
-                successors.append(next_state)
-        return compiled_actions, successors
-    
-    def get_successors_w_load_sorry(
-            self,
-            lean_sketch: str,
-            state: AStarSearchState,
-            came_from: Dict[AStarSearchState, AStarSearchAction]
-        ) \
-            -> Tuple[List[AStarSearchAction], List[AStarSearchState]]:
-        """
-        Get the successors of the current state.
-        """
-        actions = self.model.generate_actions(state)
-        compiled_actions = []
-        successors = []
-        for action in actions:
-            next_state, feedback, done = self.env.step_w_load_sorry(
-                lean_sketch=lean_sketch,
-                state=state,
-                goal_id=state.next_goal_id,
-                action=action, 
-                actions=self.reconstruct_path(came_from=came_from, current=state)
+            next_state, feedback, done = self.env.step(
+                current_state=current_state,
+                current_code=current_code,
+                goal_id=action.applied_state.next_goal_id,
+                action=action
             )
             if done:
                 compiled_actions.append(action)
                 successors.append(next_state)
         return compiled_actions, successors
     
-    def reconstruct_path(self, came_from: Dict[AStarSearchState, AStarSearchAction], current: AStarSearchState) -> List[AStarSearchAction]:
+    def reconstruct_path(
+            self,
+            came_from: Dict[AStarSearchState, AStarSearchAction],
+            current: AStarSearchState
+        ) -> List[AStarSearchAction]:
         """
         Reconstruct the path from the initial state to the current state.
         """
@@ -360,6 +437,18 @@ class AStarSearchAgent():
             current = action.applied_state
         path.reverse()
         return path
+    
+    # TODO: Need to add tactic depending on the goal_id it is applied to i.e. indentation and \mid
+    def get_current_code(
+            self,
+            initial_sketch: str,
+            actions: List[AStarSearchAction]  
+        ) -> str:
+        """
+        Get the current code from the initial sketch and actions applied.
+        """
+        current_code = "\n  ".join([initial_sketch] + [action.to_code() for action in actions])
+        return current_code
 
     def search(self,
                lean_sketch: str,
@@ -402,7 +491,9 @@ class AStarSearchAgent():
             step += 1
             _, g_current, current = heapq.heappop(queue)
 
-            actions, successors = self.get_successors_w_load_sorry(initial_sketch, current, came_from)
+            current_actions = self.reconstruct_path(came_from, current)
+            current_code = self.get_current_code(initial_sketch, current_actions)
+            actions, successors = self.get_successors(current, current_code)
             if verbose:
                 print(f"Current state: {current}")
                 for successor in successors:
@@ -425,7 +516,7 @@ class AStarSearchAgent():
 
 
 if __name__ == '__main__':
-    model = DojoModel()
+    model = LLMModel()
     server = Server(project_path="./", imports=['Mathlib.Data.Real.Cardinality', 'Mathlib.Data.Real.Basic'])
     env = PantographEnvironment(server)
     lean_sketch = """theorem mathd_algebra_44
