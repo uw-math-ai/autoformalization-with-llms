@@ -2,6 +2,9 @@ from abc import abstractmethod
 from pantograph.server import Server
 import re
 
+import heapq
+
+
 # Contains information about the current proof state, including the unsolved goals and previously used tactics
 
 class NeuralProofState():
@@ -113,7 +116,7 @@ class AStarSearchAgent():
     def __init__(self, model, server, heuristic=None):
         self.model = model 
         self.server = server 
-        self.server = heuristic if heuristic else self.default_heuristic
+        self.server = heuristic if heuristic else self.default_heuristic # is this a typo?
     def default_heuristic(self, current, neighbor):
         return 1.0
     def get_successors(self, current, current_code):
@@ -125,6 +128,8 @@ class AStarSearchAgent():
             if success:
                 compiled_actions.append(tactic)
                 successors.append(next_state)
+                
+        # TODO: what are we returning here?
 
     def search(self, initial_sketch, max_steps, verbose):
         unit = self.server.load_sorry(initial_sketch + "\nsorry")
@@ -142,7 +147,31 @@ class AStarSearchAgent():
         initial_state = NeuralProofState(thm_statement=initial_sketch, server=self.server)
 
         #TODO: implement AStarSearch here.
+        
+        ### Right now this is technically best-first search - should change to A* ###
+        heuristic = default_heuristic
+        steps = 0
+        
+        p_queue = []
+        heapq.heapify(priority_queue)
+        
+        # sorts by heuristic output
+        heapq.heappush(p_queue, (heuristic(initial_state), heuristic))
 
+        while len(p_queue) > 0 and steps < max_steps:
+            if verbose:
+                # TODO: print the queue, possibly just one node
+                pass
+            
+            successors = self.get_successors() # TODO: what is current and current_code?
+        
+            # Outline:
+            
+            # - check if successors solve all goals
+            # - if not, add successors to p_queue
+            # repeat
+
+            # return NPS with full proof if solved
         
         return [], False, 0, "not implemented yet"
         # return tactics=List[str], success=bool, step=int, message=str
