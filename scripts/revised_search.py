@@ -129,7 +129,8 @@ class AStarSearchAgent():
                 compiled_actions.append(tactic)
                 successors.append(next_state)
                 
-        # TODO: what are we returning here?
+        return compiled_actions, successors
+
 
     def search(self, initial_sketch, max_steps, verbose):
         unit = self.server.load_sorry(initial_sketch + "\nsorry")
@@ -158,6 +159,7 @@ class AStarSearchAgent():
         # sorts by heuristic output
         heapq.heappush(p_queue, (heuristic(initial_state), heuristic))
 
+
         while len(p_queue) > 0 and steps < max_steps:
             if verbose:
                 # TODO: print the queue, possibly just one node
@@ -167,6 +169,7 @@ class AStarSearchAgent():
         
             # Outline:
             
+            # reference src/search.py, and the AStarSearch built there
             # - check if successors solve all goals
             # - if not, add successors to p_queue
             # repeat
