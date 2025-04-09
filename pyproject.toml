@@ -11,7 +11,12 @@ python = "^3.12"
 pantograph = {git = "https://github.com/stanford-centaur/PyPantograph.git", rev = "f67756f2cde95a807442a423029338e01bdc3769"}
 requests = "^2.32.3"
 groq = "^0.18.0"
-python-dotenv = "^1.0.1"
+anthropic = "^0.49.0"
+openai = "^1.65.5"
+litellm = "^1.63.5"
+deepsee = "^0.1"
+deepseek = "^1.0.0"
+
 
 [build-system]
 requires = ["poetry-core"]

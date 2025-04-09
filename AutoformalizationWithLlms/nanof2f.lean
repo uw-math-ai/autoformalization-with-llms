@@ -1,34 +1,44 @@
 import Mathlib.Data.Nat.Factorization.Basic
 import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Data.Real.Basic
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.FieldSimp
+import Mathlib.Tactic.Ring
 
 -- Nanof2f is like minif2f but even smaller!
 
-def hello := "world"
+-- def hello := "world"
 
-example : forall (p q: Prop), Or p q -> Or q p := by
-  intro p q h
-  rcases h with hp | hq
-  right
-  exact hp
-  left
-  exact hq
+-- example : forall (p q: Prop), Or p q -> Or q p := by
+--   intro p q h
+--   rcases h with hp | hq
+--   right
+--   exact hp
+--   left
+--   exact hq
 
-example : forall (p q : Prop), p ∧ q → q ∧ p := by
-  intro p q h
-  constructor
-  exact h.right
-  exact h.left
+-- example : forall (p q : Prop), p ∧ q → q ∧ p := by
+--   intro p q h
+--   constructor
+--   exact h.right
+--   exact h.left
 
-example (p q : Prop) : ¬(p → q) ↔ p ∧ ¬q := by
-  constructor
-  intro h
-  sorry -- TODO: add proof
-  intro h
-  sorry
+-- example (p q : Prop) : ¬(p → q) ↔ p ∧ ¬q := by
+--   constructor
+--   intro h
+--   sorry -- TODO: add proof
+--   intro h
+--   sorry
 
-example (x y : ℝ) : x * y = 0 → x = 0 ∨ y = 0 := by
-  contrapose
-  rw [not_or]
-  intro ⟨hx, hy⟩
-  exact mul_ne_zero hx hy
+-- example (x y : ℝ) : x * y = 0 → x = 0 ∨ y = 0 := by
+--   contrapose
+--   rw [not_or]
+--   intro ⟨hx, hy⟩
+--   exact mul_ne_zero hx hy
+
+example (a b : ℝ)
+  (h₁ : (a * b)=180)
+  (h₂ : 2 * (a + b)=54) :
+  (a^2 + b^2) = 369 := by
+  have h₃ : a + b = 27 := by linarith
+  have h₄ : a^2 + b^2 = (a + b)^2 - 2 * a * b := by ring
