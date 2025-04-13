@@ -35,3 +35,11 @@ example (x y : ℝ) : x * y = 0 → x = 0 ∨ y = 0 := by
   rw [not_or]
   intro ⟨hx, hy⟩
   exact mul_ne_zero hx hy
+
+example (a b : ℝ) (h : a = b) : a + a = b + b := by
+  have h' : a + a = a + b := by rw [h]
+  rw [←h]
+
+theorem my_thm (x y : ℝ) : x * y = 0 → x = 0 ∨ y = 0 := by
+intro h
+exact mul_eq_zero.mp h

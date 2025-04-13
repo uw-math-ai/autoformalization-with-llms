@@ -60,13 +60,15 @@ from litellm import completion
 
 dotenv.load_dotenv()
 
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+# os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 #os.environ["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY")
 #os.environ["ANTHROPIC_API_KEY"] = os.getenv("ANTHROPIC_API_KEY")
 
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+
 litellm.drop_params=True
 
-def predict_next_step(nps: NeuralProofState, num_tactics=5, **kwargs):
+def predict_next_step(nps: NeuralProofState, num_tactics=3, **kwargs):
     prompt = nps.to_prompt()
     
     params = {

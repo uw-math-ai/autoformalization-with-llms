@@ -14,10 +14,22 @@ class NeuralProofState():
         
         if thm_statement:  
             try:
-                self.state = self.server.goal_start(thm_statement)
+                self.state = self.server.load_sorry(thm_statement + f"\nsorry")[0].goal_state
             except Exception as e:
-                goal = self.make_valid_goal(thm_statement)
-                self.state = self.server.goal_start(goal)
+                try:
+                    self.state = self.server.goal_start(thm_statement)
+                except Exception as e2:
+                    try:
+                        goal = self.make_valid_goal(thm_statement)
+                        self.state = self.server.goal_start(goal)
+                    except Exception as e3:
+                        print("Couldn't turn the theorem into a valid goal state!")
+                        print(f"errors: {e, e2, e3}")
+                        
+            print(f"\n")
+            print(f"creating new nps, state is:\n{self.state}")
+            print(f"\n")
+                
             self.prev_tactics = []
             self.neg_log_prob = 0
             self.parent = None
