@@ -8,8 +8,8 @@ import random
 
 # Use only one of these below!
 
-from neuralproofstate_two import NeuralProofState # load_sorry version
-# from neuralproofstate import NeuralProofState # goal_tactic version - has some bugs right now
+# from neuralproofstate_two import NeuralProofState # load_sorry version
+from neuralproofstate import NeuralProofState # goal_tactic version - has some bugs right now
 
 class Model():
     @abstractmethod
@@ -31,16 +31,18 @@ class AStarSearchAgent():
         for tactic in tactics: 
             try:
                 tactic = tactic['tactic'] # for some reason the tactics are a dictionary, something in predictnextstep.py needs fixing
-                print(f"tactic:{tactic}")
+                # print(f"tactic:{tactic}")
                 child = nps.apply_tactic(tactic)
-                successors.append(child)
+                if child is not None:
+                    successors.append(child)
             except Exception as e:
-                print(f"get successor error: {e}")
+                # print(f"get successor error: {e}")
+                pass
                 
         return successors
 
     def search(self, initial_sketch, max_steps, verbose):
-        unit = self.server.load_sorry(initial_sketch + "\nsorry")
+        unit = self.server.load_sorry(initial_sketch + f"\nsorry")
         goal_state = unit[0].goal_state
         error_messages = [s for s in unit[0].messages if "error" in s]
         if goal_state is None: 
@@ -73,24 +75,38 @@ class AStarSearchAgent():
             for successor in successors:
                 goal_state = successor.state
                 if goal_state is None or goal_state.__str__() is None or len(goal_state.__str__()) == 0: # TODO: not sure which one of these is actually required
-                    return successor
+                    return successor # TODO: some bug where very occasionally successor is a tuple? idk
                 else:
                     heapq.heappush(p_queue, (self.heuristic(successor), successor))
             
+            if len(p_queue) == 0:
+                heapq.heappush(p_queue, (self.heuristic(nps), nps))
+            
             steps += 1  
+            
+        return None
     
 if __name__ == '__main__':
     model = Model()
-    server = Server(project_path="./", imports=['Mathlib.Data.Real.Sqrt', 'Mathlib.Data.Real.Basic'])
-    lean_sketch = """theorem my_thm (x y : ℝ) : x * y = 0 → x = 0 ∨ y = 0 := by"""
+    imports = [
+    "Mathlib.Data.Nat.Factorization.Basic",
+    "Mathlib.Data.Nat.Prime.Basic",
+    "Mathlib.Data.Real.Basic",
+    "Mathlib.Tactic.Linarith",
+    "Mathlib.Tactic.FieldSimp",
+    "Mathlib.Tactic.Ring"
+    ]
+    # ['Mathlib.Data.Real.Sqrt', 'Mathlib.Data.Real.Basic']
+    server = Server(project_path="./", imports=imports)
+    lean_sketch = """theorem Prime.dvd_iff_eq {p a : ℕ} (hp : p.Prime) (a1 : a ≠ 1) : a ∣ p ↔ p = a := by"""
     
     search_agent = AStarSearchAgent(model, server)
-    nps = search_agent.search(initial_sketch=lean_sketch, max_steps=3, verbose=True)
+    nps = search_agent.search(initial_sketch=lean_sketch, max_steps=10, verbose=True)
     
     if nps is not None:
         print(f"Proof found!")
         nps.verbose_string()
         print(f"proof:\n")
-        print(nps.thm_statement)
+        print(nps.get_proof())
     else:
         print(f"No proof found")

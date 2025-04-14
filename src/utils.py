@@ -5,6 +5,46 @@ import os
 from pantograph.server import Server
 from pantograph.expr import GoalState
 
+# For making a list of theorem statements from minif2f or another source
+def load_theorems(txt_path):
+    with open(txt_path, 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+    
+    theorem_pattern = re.compile(r'^theorem\s+(\w+)')
+    theorems = []
+    collecting = False
+    current_lines = []
+
+    for line in lines:
+        stripped = line.strip()
+
+        if collecting:
+            if stripped.endswith('sorry'):
+                cleaned_line = stripped[:-len('sorry')].rstrip()
+                current_lines.append(cleaned_line)
+                flat_text = " ".join(current_lines).strip()
+                theorems.append(flat_text)
+                collecting = False
+                current_lines = []
+            else:
+                current_lines.append(stripped)
+        else:
+            if theorem_pattern.match(stripped):
+                collecting = True
+                current_lines = [stripped]
+
+    return theorems
+
+# For getting a big list of imports
+def load_imports(txt_path):
+    imports = []
+    with open(txt_path, 'r', encoding='utf-8') as file:
+        for line in file:
+            line = line.strip()
+            if line.startswith('import '):
+                imports.append(line[len('import '):].strip())
+    return imports
+
 def load_imports_list(lean_path) -> List[str]:
     """
     Load the imports list from a Lean file.

@@ -1,7 +1,7 @@
-from pantograph.server import Server
 import re
 
 # Contains information about the current proof state, including the unsolved goals and previously used tactics
+# This is the goal_tactic version
 
 class NeuralProofState():
     
@@ -26,9 +26,9 @@ class NeuralProofState():
                         print("Couldn't turn the theorem into a valid goal state!")
                         print(f"errors: {e, e2, e3}")
                         
-            print(f"\n")
-            print(f"creating new nps, state is:\n{self.state}")
-            print(f"\n")
+            # print(f"\n")
+            # print(f"creating new nps, state is:\n{self.state}")
+            # print(f"\n")
                 
             self.prev_tactics = []
             self.neg_log_prob = 0
@@ -56,6 +56,7 @@ class NeuralProofState():
     # TODO currently have to specify a goal to apply a tactic, which isn't ideal. Would like to just check all goals
     # TODO add log probability as a parameter
     def apply_tactic(self, tactic, goal_id=0):
+        # print(f"tactic: {tactic}")
         new_state = self.server.goal_tactic(self.state, goal_id=goal_id, tactic=tactic)
         
         child_node = NeuralProofState(state=new_state, prev_tactics=self.prev_tactics + [tactic], 
@@ -89,4 +90,7 @@ class NeuralProofState():
             print(self.state)
         print(f"Previous tactics: {self.prev_tactics}")
         print(f"Number of child nodes: {len(self.tactics_to_child_states.keys())}")
-    
+        
+    def get_proof(self):
+        return f"\n".join(self.prev_tactics)
+        
