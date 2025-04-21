@@ -1,8 +1,9 @@
 from abc import abstractmethod
 from pantograph.server import Server
 import re
+import os
 
-from predictnextstep import predict_next_step
+# from predictnextstep import predict_next_step
 import heapq
 import random
 
@@ -11,12 +12,48 @@ import random
 # from neuralproofstate_two import NeuralProofState # load_sorry version
 from neuralproofstate import NeuralProofState # goal_tactic version - has some bugs right now
 
+
+# This is an interface for the model, and it should not be used in production
 class Model():
     @abstractmethod
+    def generate_tactics(self, **kwargs):
+        tactics = ["List", "of", "strings"]
+        return tactics
+class NPSModel(Model):
     def generate_tactics(self, nps):
         tactics = predict_next_step(nps)
         return tactics
+class LLMModel(Model):
+    import litellm
+    litellm.drop_params = True
+    import dotenv
+    dotenv.load_dotenv()
+    os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+    def __init__(self, **kwargs):
+        self.params = {
+            #"model": "gpt-4o-mini",
+            #"model": "o3-mini",
+            "model": "gpt-4o", # this has given the best results of the openai models in terms of not messing up syntax
+            #"model": "claude-3-5-sonnet-20240620",
+            #"model": "gemini/gemini-2.0-flash", 
+            "max_tokens": 500,
+            "temperature": 0.5,
+            "top_p": 1,
+            "n": 3,
+        }
+        self.params.update(kwargs)
+    def generate_tactics(self, nps, prompt=None):
+        if not prompt:
+            prompt = nps.to_prompt()
+        self.params["messages"] = [{"role": "user", "content": prompt}],
+        response = litellm.completion(**self.params)
+        tactics_list = []
 
+        for choice in response.choices:
+            tactic = choice.message["content"].strip()
+            if len(tactic) < 150: # occasionally getting some weird, very long tactics as bugs
+                tactics_list.append(tactic)
+        return tactics_list
 class AStarSearchAgent():
     # model, server, heuristic
     def __init__(self, model, server, heuristic=None):
@@ -94,7 +131,7 @@ class AStarSearchAgent():
         return None
     
 if __name__ == '__main__':
-    model = Model()
+    model = NPSModel()
     imports = [
     "Mathlib.Data.Nat.Factorization.Basic",
     "Mathlib.Data.Nat.Prime.Basic",
@@ -117,3 +154,16 @@ if __name__ == '__main__':
         print(nps.get_proof())
     else:
         print(f"No proof found")
+# Example if you want to try the LLMModel
+"""
+if __name__ == "__main__":
+
+
+    model = LLMModel()
+
+    state = \"""theorem amc12_2000_p11 (a b : ℝ) (h₀ : a ≠ 0 ∧ b ≠ 0) (h₁ : a * b = a - b) :
+    a / b + b / a - a * b = 2 := by\"""
+    nps = NeuralProofState(state=state)
+
+    print(model.generate_tactics(nps))
+"""
