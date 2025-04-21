@@ -6,8 +6,9 @@ import re
 class NeuralProofState():
     
     # TODO add server imports for definitions of real numbers, etc
-    def __init__(self, state=None, thm_statement=None, prev_tactics=None, 
-                 informal_info=None, server=None, neg_log_prob=None, parent=None):   
+    def __init__(self, state=None, thm_statement=None, prev_tactics=None,
+                 informal_info=None, server=None, neg_log_prob=None, parent=None,
+                 failed_tactics=None):
 
         self.informal_info = informal_info
         self.server = server
@@ -33,15 +34,50 @@ class NeuralProofState():
             self.prev_tactics = []
             self.neg_log_prob = 0
             self.parent = None
+            self.failed_tactics = None
         else:
             self.state = state
             self.prev_tactics = prev_tactics
             self.neg_log_prob = neg_log_prob
             self.parent = parent
+            self.failed_tactics = failed_tactics
         
         self.tactics_to_child_states = {}
     
-    # Turns a theorem statement into a valid goal
+    # TODO: need to do error handling correctly here - i.e. return None if the tactic is invalid
+    def apply_tactic(self, tactic, goal_id=0):
+        print(f"tactic: {tactic}, prev failures: {self.failed_tactics}")
+        new_state = self.server.goal_tactic(self.state, goal_id=goal_id, tactic=tactic)
+        
+        child_node = NeuralProofState(state=new_state, prev_tactics=self.prev_tactics + [tactic], 
+                                      informal_info=self.informal_info, server=self.server, parent=self)
+        
+        self.tactics_to_child_states[tactic] = child_node
+        return child_node        
+    
+    def add_failed_tactic(self, tactic):
+        self.failed_tactics.append(tactic)
+    
+    def to_prompt(self):
+        prompt = f"""Given the Lean 4 code: \n{self.state}\n Provide the next tactic 
+    to progress towards proving the theorem. The previous tactics used to prove this theorem are as follows: \n{self.prev_tactics}\n"""
+        
+        if self.informal_info:
+            prompt += f"""You should also consider the following information when choosing a tactic: \n{self.informal_info}\n"""
+            
+        if self.failed_tactics:
+            prompt += f"""Note that you have previously tried the following tactics: \n{self.failed_tactics}\n
+            They did not compile, either because of a syntax error, or because your code simply didn't make sense.
+            Do not generate the exact same thing as a previously failed tactic.\n"""
+        
+        prompt += f"""Give only the next Lean tactic and no other information in your response.
+        Do not include 'by' at the start of your response, as it is already included in the theorem header.
+        Do not put any quotation or tick marks around your answer. Do not give Lean 3 syntax. Do not use the sorry tactic.
+        Do not include the goal symbol in your response."""
+        
+        return prompt
+    
+        # Turns a theorem statement into a valid goal
     # TODO make this work reliably for statements with multiple hypothesis
     def make_valid_goal(self, thm_statement):
         string_groups = re.match(r"\((.*?)\)\s*:\s*(.*)",thm_statement)
@@ -52,30 +88,6 @@ class NeuralProofState():
             return goal
         else:
             raise Exception("theorem statement is in an invalid format!")
-    
-    # TODO currently have to specify a goal to apply a tactic, which isn't ideal. Would like to just check all goals
-    # TODO add log probability as a parameter
-    def apply_tactic(self, tactic, goal_id=0):
-        # print(f"tactic: {tactic}")
-        new_state = self.server.goal_tactic(self.state, goal_id=goal_id, tactic=tactic)
-        
-        child_node = NeuralProofState(state=new_state, prev_tactics=self.prev_tactics + [tactic], 
-                                      informal_info=self.informal_info, server=self.server, parent=self)
-        
-        self.tactics_to_child_states[tactic] = child_node
-        return child_node
-
-    def to_prompt(self):
-        prompt = f"""Given the Lean 4 code: \n{self.state}\n Provide the next tactic 
-    to progress towards proving the theorem. The previous tactics used to prove this theorem are as follows: \n{self.prev_tactics}\n"""
-        
-        if self.informal_info:
-            prompt += f"""You should also consider the following information when choosing a tactic: \n{self.informal_info}\n"""
-        
-        prompt += f"""Give only the next Lean tactic and no other information in your response. 
-        Do not include 'by' at the start of your response, as it is already included in the theorem header."""
-        
-        return prompt
     
     def __str__(self):
         if len(self.state.__str__()) == 0:

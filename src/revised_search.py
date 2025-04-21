@@ -23,21 +23,30 @@ class AStarSearchAgent():
         self.model = model 
         self.server = server 
         self.heuristic = heuristic if heuristic else self.default_heuristic
+        
     def default_heuristic(self, current, neighbor=None):
         return random.uniform(0,1)
-    def get_successors(self, nps):
-        tactics = self.model.generate_tactics(nps)
+    
+    def get_successors(self, nps, k_tries=3):
         successors = []
-        for tactic in tactics: 
-            try:
-                tactic = tactic['tactic'] # for some reason the tactics are a dictionary, something in predictnextstep.py needs fixing
-                # print(f"tactic:{tactic}")
-                child = nps.apply_tactic(tactic)
-                if child is not None:
-                    successors.append(child)
-            except Exception as e:
-                # print(f"get successor error: {e}")
-                pass
+
+        for i in range(k_tries):
+            tactics = self.model.generate_tactics(nps)
+            failures = 0
+            for tactic in tactics: 
+                try:
+                    tactic = tactic['tactic'] # for some reason the tactics are a dictionary, something in predictnextstep.py needs fixing
+                    child = nps.apply_tactic(tactic)
+                    if child is not None:
+                        successors.append(child)
+                    else:
+                        nps.add_failed_tactic(tactic) # TODO: this is never called because NPS currently doesn't handle errors correctly
+                        failures += 1
+                except Exception as e:
+                    # print(f"get successor error: {e}")
+                    pass
+            if failures == 0:
+                break
                 
         return successors
 
@@ -55,9 +64,7 @@ class AStarSearchAgent():
             return [], False, 0, f"Failed to create a goal state, error messages = {error_messages}"
 
         initial_state = NeuralProofState(thm_statement=initial_sketch, server=self.server)
-        
-        ### Right now this is technically best-first search - should change to A* ###
-        
+                
         steps = 0
         p_queue = []
         heapq.heapify(p_queue)
@@ -77,10 +84,10 @@ class AStarSearchAgent():
                 if goal_state is None or goal_state.__str__() is None or len(goal_state.__str__()) == 0: # TODO: not sure which one of these is actually required
                     return successor # TODO: some bug where very occasionally successor is a tuple? idk
                 else:
-                    heapq.heappush(p_queue, (self.heuristic(successor), successor))
+                    heapq.heappush(p_queue, (self.heuristic(successor) + len(successor.prev_tactics), successor))
             
             if len(p_queue) == 0:
-                heapq.heappush(p_queue, (self.heuristic(nps), nps))
+                heapq.heappush(p_queue, (self.heuristic(nps) + len(nps.prev_tactics), nps))
             
             steps += 1  
             

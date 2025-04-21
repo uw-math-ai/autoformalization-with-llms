@@ -1,0 +1,159 @@
+Solved 37 out of 244 theorems. Heuristic: None. Model: gpt-4o. Max proof steps: 3. Tactic suggestions per node: 2
+
+theorem mathd_algebra_141 (a b : ℝ) (h₁ : (a * b)=180) (h₂ : 2 * (a + b)=54) : (a^2 + b^2) = 369 := by
+nlinarith [h₁, h₂]
+
+
+theorem mathd_numbertheory_299 : (1 * 3 * 5 * 7 * 9 * 11 * 13) % 10 = 5 := by
+norm_num
+
+
+theorem amc12b_2020_p2 : ((100 ^ 2 - 7 ^ 2):ℝ) / (70 ^ 2 - 11 ^ 2) * ((70 - 11) * (70 + 11) / ((100 - 7) * (100 + 7))) = 1 := by
+ring
+
+
+theorem mathd_algebra_419 (a b : ℝ) (h₀ : a = -1) (h₁ : b = 5) : -a - b^2 + 3 * (a * b) = -39 := by
+rw [h₀, h₁]
+norm_num
+
+
+theorem mathd_algebra_398 (a b c : ℝ) (h₀ : 0 < a ∧ 0 < b ∧ 0 < c) (h₁ : 9 * b = 20 * c) (h₂ : 7 * a = 4 * b) : 63 * a = 80 * c := by
+linarith [h₁, h₂]
+
+
+theorem mathd_algebra_160 (n x : ℝ) (h₀ : n + x = 97) (h₁ : n + 5 * x = 265) : n + 2 * x = 139 := by
+linarith
+
+
+theorem mathd_algebra_176 (x : ℝ) : (x + 1)^2 * x = x^3 + 2 * x^2 + x := by
+ring
+
+
+theorem mathd_numbertheory_345 : (2000 + 2001 + 2002 + 2003 + 2004 + 2005 + 2006) % 7 = 0 := by
+norm_num
+
+
+theorem mathd_numbertheory_328 : (5^999999) % 7 = 6 := by
+norm_num
+
+
+theorem mathd_numbertheory_175 : (2^2010) % 10 = 4 := by
+exact Nat.pow_mod 2 2010 10
+
+
+theorem mathd_numbertheory_728 : (29^13 - 5^13) % 7 = 3 := by
+norm_num
+
+
+theorem mathd_algebra_184 (a b : NNReal) (h₀ : 0 < a ∧ 0 < b) (h₁ : (a^2) = 6*b) (h₂ : (a^2) = 54/b) : a = 3 * NNReal.sqrt 2 := by
+rw [←h₁, ←h₂] at *
+simp at *
+sorry
+
+
+theorem mathd_numbertheory_207 : 8 * 9^2 + 5 * 9 + 2 = 695 := by
+ring
+
+
+theorem mathd_numbertheory_342 : 54 % 6 = 0 := by
+simp
+
+
+theorem mathd_algebra_412 (x y : ℝ) (h₀ : x + y = 25) (h₁ : x - y = 11) : x = 18 := by
+linarith
+
+
+theorem mathd_algebra_388 (x y z : ℝ) (h₀ : 3 * x + 4 * y - 12 * z = 10) (h₁ : -2 * x - 3 * y + 9 * z = -4) : x = 14 := by
+linarith
+
+
+theorem mathd_algebra_432 (x : ℝ) : (x + 3) * (2 * x - 6) = 2 * x^2 - 18 := by
+simp only [mul_add, add_mul, pow_two]
+ring_nf
+
+
+theorem amc12a_2020_p4 (S : Finset ℕ) (h₀ : ∀ (n : ℕ), n ∈ S ↔ 1000 ≤ n ∧ n ≤ 9999 ∧ (∀ (d : ℕ), d ∈ Nat.digits 10 n → Even d) ∧ 5 ∣ n) : S.card = 100 := by
+simp_rw [h₀] at *
+sorry
+
+
+theorem mathd_algebra_427 (x y z : ℝ) (h₀ : 3 * x + y = 17) (h₁ : 5 * y + z = 14) (h₂ : 3 * x + 5 * z = 41) : x + y + z = 12 := by
+linarith
+
+
+theorem mathd_algebra_153 (n : ℝ) (h₀ : n = 1 / 3) : Int.floor (10 * n) + Int.floor (100 * n) + Int.floor (1000 * n) + Int.floor (10000 * n) = 3702 := by
+simp [h₀]
+norm_num
+
+
+theorem mathd_algebra_329 (x y : ℝ) (h₀ : 3 * y = x) (h₁ : 2 * x + 5 * y = 11) : x + y = 4 := by
+linarith
+
+
+theorem mathd_numbertheory_229 : (5^30) % 7 = 1 := by
+norm_num
+
+
+theorem mathd_numbertheory_551 : 1529 % 6 = 5 := by
+norm_num
+
+
+theorem mathd_algebra_304 : 91^2 = 8281 := by
+norm_num
+
+
+theorem amc12b_2002_p19 (a b c: ℝ) (h₀ : 0 < a ∧ 0 < b ∧ 0 < c) (h₁ : a * (b + c) = 152) (h₂ : b * (c + a) = 162) (h₃ : c * (a + b) = 170) : a * b * c = 720 := by
+nlinarith
+
+
+theorem amc12a_2020_p9 (S : Finset ℝ) (h₀ : ∀ (x : ℝ), x ∈ S ↔ 0 ≤ x ∧ x ≤ 2 * Real.pi ∧ Real.tan (2 * x) = Real.cos (x / 2)) : S.card = 5 := by
+simp_rw [h₀] at *
+sorry
+
+
+theorem mathd_numbertheory_212 : (16^17 * 17^18 * 18^19) % 10 = 8 := by
+norm_num
+
+
+theorem mathd_algebra_125 (x y : ℕ) (h₀ : 0 < x ∧ 0 < y) (h₁ : 5 * x = y) (h₂ : (↑x - (3:ℤ)) + (y - (3:ℤ)) = 30) : x = 6 := by
+linarith
+
+
+theorem mathd_numbertheory_254 : (239 + 174 + 83) % 10 = 6 := by
+simp
+
+
+theorem mathd_algebra_354 (a d : ℝ) (h₀ : a + 6 * d = 30) (h₁ : a + 10 * d = 60) : a + 20 * d = 135 := by
+linarith
+
+
+theorem mathd_numbertheory_85 : 1 * 3^3 + 2 * 3^2 + 2*3 + 2 = 53 := by
+ring_nf
+
+
+theorem amc12b_2002_p2 (x : ℤ) (h₀ : x = 4) : (3 * x - 2) * (4 * x + 1) - (3 * x - 2) * (4 * x) + 1 = 11 := by
+subst h₀
+simp
+
+
+theorem mathd_numbertheory_517 : (121 * 122 * 123) % 4 = 2 := by
+simp
+
+
+theorem mathd_numbertheory_66 : 194 % 11 = 7 := by
+simp
+
+
+theorem mathd_numbertheory_235 : (29 * 79 + 31 * 81) % 10 = 2 := by
+simp
+
+
+theorem mathd_algebra_314 (n : ℕ) (h₀ : n = 11) : (1 / 4)^(n + 1) * 2^(2 * n) = 1 / 4 := by
+rw [h₀]
+simp
+
+
+theorem mathd_algebra_441 (x : ℝ) (h₀ : x ≠ 0) : 12 / (x * x) * (x^4 / (14 * x)) * (35 / (3 * x)) = 10 := by
+field_simp [h₀]
+ring_nf
+

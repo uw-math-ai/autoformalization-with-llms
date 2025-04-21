@@ -68,13 +68,13 @@ os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
 litellm.drop_params=True
 
-def predict_next_step(nps: NeuralProofState, num_tactics=3, **kwargs):
+def predict_next_step(nps: NeuralProofState, num_tactics=2, **kwargs):
     prompt = nps.to_prompt()
     
     params = {
         #"model": "gpt-4o-mini",
-        "model": "o3-mini",
-        #"model": "gpt-4o",
+        #"model": "o3-mini",
+        "model": "gpt-4o", # this has given the best results of the openai models in terms of not messing up syntax
         #"model": "claude-3-5-sonnet-20240620",
         #"model": "gemini/gemini-2.0-flash", 
         "messages": [{"role": "user", "content": prompt}],
@@ -93,9 +93,10 @@ def predict_next_step(nps: NeuralProofState, num_tactics=3, **kwargs):
 
         for choice in response.choices:
             tactic = choice.message["content"].strip()
-            tactics_list.append({
-                "tactic": tactic,
-            })
+            if len(tactic) < 150: # occasionally getting some weird, very long tactics as bugs
+                tactics_list.append({
+                    "tactic": tactic,
+                })
 
         return tactics_list
 
