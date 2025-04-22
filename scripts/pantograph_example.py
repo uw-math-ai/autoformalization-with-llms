@@ -5,12 +5,7 @@ from pantograph.server import Server
 
 if __name__ == '__main__':
     imports = [
-    "Mathlib.Data.Nat.Factorization.Basic",
-    "Mathlib.Data.Nat.Prime.Basic",
-    "Mathlib.Data.Real.Basic",
-    "Mathlib.Tactic.Linarith",
-    "Mathlib.Tactic.FieldSimp",
-    "Mathlib.Tactic.Ring"
+    "Mathlib.Data.Real.Basic"
     ]
     
     server = Server(project_path="./", imports=imports)
