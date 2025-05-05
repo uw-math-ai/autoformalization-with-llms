@@ -1,5 +1,6 @@
 import sys
 
+import requests
 import os
 import dotenv
 import litellm
@@ -542,21 +543,31 @@ def load_lean_phrasebook():
   }
 ]
     return json.dumps(phrasebook)
+  
+  
+def load_survival_guide() -> str:
+    url = ("https://raw.githubusercontent.com/wiki/"
+           "leanprover-community/mathlib4/"
+           "Lean-4-survival-guide-for-Lean-3-users.md")
+
+    res = requests.get(url, timeout=10)
+    res.raise_for_status()    
+    return res.text       
 
 
-def get_natural_language_proof(state: str) -> str:
-    lean_phrasebook = load_lean_phrasebook()
-    prompt = f"""The following is a reference of Lean phrases:
-    {lean_phrasebook}
+def get_natural_language_proof(state: str, phrasebook: str, guide: str) -> str:   
+    prompt = (
+        "Lean phrasebook:\n"
+        f"{phrasebook}\n\n"
+        "Lean 4 survival guide:\n"
+        f"{guide}\n\n"
+        "Theorem to explain, written in Lean 4 syntax:\n"
+        f"{state}\n\n"
+        "Provide a **step-by-step explanation in natural language** for how to prove this theorem mathematically."
+        "Use clear reasoning but do not use Lean code or Lean tactics. Provide lean-style reasoning."
+        "The goal is to understand the strategy for proving the theorem before formalizing it."
+    )
 
-    The following is a theorem written in Lean 4 syntax:
-
-    {state}
-
-    Provide a **step-by-step explanation in natural language** for how to prove this theorem mathematically. 
-    Use clear reasoning but do not use Lean code or Lean tactics. Provide lean-style reasoning.
-    The goal is to understand the strategy for proving the theorem before formalizing it.
-    """
     try:
         response = completion(
             model="o3-mini",
@@ -575,13 +586,24 @@ if __name__ == "__main__":
     a / b + b / a - a * b = 2 := by"""
     
     prev_tactics = None
+    
+    phrasebook = load_lean_phrasebook()
+    guide     = load_survival_guide()
+    natural_lang_pf = get_natural_language_proof(state, phrasebook, guide)
 
-    informal_info = get_natural_language_proof(state)
-    print(informal_info)
+
+    informal_info = (
+        "Lean phrasebook:\n"
+        f"{phrasebook}\n\n"
+        "Lean 4 survival guide:\n"
+        f"{guide}\n\n"
+        "Natural‑language proof explanation:\n"
+        f"{natural_lang_pf}"
+    )
     
     nps = NeuralProofState(state=state, prev_tactics=prev_tactics, informal_info=informal_info)
 
-    tactics = predict_next_step(nps, num_tactics=3, temperature=1.4)
+    tactics = predict_next_step(nps, num_tactics=3, temperature=1)
 
     print("Predicted next steps:")
     for tactic in tactics:
