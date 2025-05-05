@@ -25,7 +25,7 @@ params = {
 model = LLMModel(params)
 search_agent = AStarSearchAgent(model, server)
 
-output_path = f"data/results/{params["model"]}-n={params["n"}-tokens={params["tokens"]}-results.txt"
+output_path = f"data/results/{params["model"]}-n={params["n"]}-tokens={params["tokens"]}-results.txt"
 solved_count = 0
 
 with open(output_path, "w", encoding="utf-8") as out_file:
