@@ -6,3 +6,6 @@
 4. Download mathlib cache with `lake exe cache get`.
 5. Run `poetry install --no-root` to install the dependencies (mainly PyPantograph).
 6. Run `poetry run python scripts/pantograph_example.py` to test the installation.
+
+# Eval on minif2f
+Run `poetry run python src/evaluate.py`
