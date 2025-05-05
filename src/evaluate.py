@@ -19,10 +19,13 @@ theorems = load_theorems(miniF2F_path) # string versions of every theorem in min
 imports = load_imports(import_path) # string of all the things minif2f imports, plus a few more
 
 server = Server(project_path="./", imports=imports) # server seems to like crashing, can't handle the imports ?
-model = LLMModel()
+params = {
+
+}
+model = LLMModel(params)
 search_agent = AStarSearchAgent(model, server)
 
-output_path = "data/results/solved_theorems.txt"
+output_path = f"data/results/{params["model"]}-n={params["n"}-tokens={params["tokens"]}-results.txt"
 solved_count = 0
 
 with open(output_path, "w", encoding="utf-8") as out_file:
