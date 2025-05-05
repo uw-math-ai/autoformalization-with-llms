@@ -6,7 +6,8 @@ from tqdm import tqdm
 
 from pantograph.server import Server
 from utils import load_theorems, load_imports
-from revised_search import Model, AStarSearchAgent
+from revised_search import AStarSearchAgent
+from LLMModel import LLMModel
 
 from neuralproofstate import NeuralProofState
 
@@ -17,8 +18,8 @@ import_path = "data/test/minif2f-imports.txt"
 theorems = load_theorems(miniF2F_path) # string versions of every theorem in minif2f
 imports = load_imports(import_path) # string of all the things minif2f imports, plus a few more
 
-server = Server(project_path="./", imports=imports) # server seems to like crashing, can't handle the imports
-model = Model()
+server = Server(project_path="./", imports=imports) # server seems to like crashing, can't handle the imports ?
+model = LLMModel()
 search_agent = AStarSearchAgent(model, server)
 
 output_path = "data/results/solved_theorems.txt"
