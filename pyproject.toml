@@ -16,6 +16,7 @@ openai = "^1.65.5"
 litellm = "^1.63.5"
 deepsee = "^0.1"
 deepseek = "^1.0.0"
+numpy = "^2.2.5"
 
 
 [build-system]
