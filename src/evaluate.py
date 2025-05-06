@@ -13,6 +13,7 @@ from neuralproofstate import NeuralProofState
 
 from heuristics import goal_based
 import traceback
+import datetime
 
 miniF2F_path = "data/test/minif2f-text-version.txt"
 import_path = "data/test/minif2f-imports.txt"
@@ -44,32 +45,57 @@ filename = f"{model_params['model']} temp {model_params['temperature']}"
 output_path = f"data/results/solved/{filename}.txt"
 solved_count = 0
 
-# Ensure the output directory exists
+theorem_results = []
+
+error_messages = []
+
+for i, theorem in enumerate(tqdm(theorems, desc="Solving theorems")):
+    error_msg = None
+    try:
+        if i % 2 == 0:
+            server = Server(project_path="./", imports=imports)
+            search_agent = AStarSearchAgent(model, server, heuristic=search_params['heuristic'])
+
+        final_nps = search_agent.search(initial_sketch=theorem, max_steps=search_params['max_steps'], verbose=True)
+        if final_nps is not None:
+            proof_text = final_nps.get_proof()
+            print(f"proof text:\n{proof_text}")
+            theorem_results.append((theorem, proof_text, None))
+            solved_count += 1
+            print(f"Solved theorem {solved_count}/{len(theorems)}")
+        else:
+            print("Unsolved")
+            theorem_results.append((theorem, None, None))
+    except Exception as e:
+        print(f"Error while processing a theorem: {e}")
+        traceback.print_exc()
+        error_msg = str(e)
+        theorem_results.append((theorem, None, error_msg))
+
+# Write results to file
+timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
-
 with open(output_path, "w", encoding="utf-8") as out_file:
-    for i, theorem in enumerate(tqdm(theorems, desc="Solving theorems")):
-        try:
-            if i % 2 == 0:
-                server = Server(project_path="./", imports=imports)
-                search_agent = AStarSearchAgent(model, server, heuristic=search_params['heuristic'])
+    out_file.write("=== Experiment Metadata ===\n")
+    out_file.write(f"Timestamp: {timestamp}\n")
+    out_file.write(f"Model params: {model_params}\n")
+    out_file.write(f"Search params: {search_params}\n")
+    out_file.write(f"Theorems attempted: {len(theorems)}\n")
+    out_file.write(f"Theorems proven: {solved_count}\n")
+    out_file.write("==========================\n\n")
 
-            final_nps = search_agent.search(initial_sketch=theorem, max_steps=search_params['max_steps'], verbose=True)
-            if final_nps is not None:
-                proof_text = final_nps.get_proof()
-                print(f"proof text:\n{proof_text}")
-                out_file.write(f"\n{theorem}\n{proof_text}\n\n")
-                solved_count += 1
-                print(f"Solved theorem {solved_count}/{len(theorems)}")
-            else:
-                print("Unsolved")
-        except Exception as e:
-            print(f"Error while processing a theorem: {e}")
-            traceback.print_exc()
+    for theorem, proof_text, error_msg in theorem_results:
+        out_file.write(f"\n{theorem}\n")
+        if proof_text:
+            out_file.write(f"{proof_text}\n\n")
+        elif error_msg:
+            out_file.write(f"UNSOLVED (Error: {error_msg})\n\n")
+        else:
+            out_file.write("UNSOLVED\n\n")
 
 # Final summary
 print(f"\nFinished. Solved {solved_count} out of {len(theorems)} theorems.")
-print(f"Saved solved theorems to '{output_path}'")
+print(f"Saved solved theorems to {output_path}")
 
 # TODO: compute statistics and save them to the csv as well. For example, average number of steps taken, most frequent tactics used, etc.
 
