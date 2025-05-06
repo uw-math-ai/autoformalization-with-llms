@@ -71,6 +71,8 @@ with open(output_path, "w", encoding="utf-8") as out_file:
 print(f"\nFinished. Solved {solved_count} out of {len(theorems)} theorems.")
 print(f"Saved solved theorems to '{output_path}'")
 
+# TODO: compute statistics and save them to the csv as well. For example, average number of steps taken, most frequent tactics used, etc.
+
 # Save summary to CSV
 csv_output_path = "data/results/summary.csv"
 row = {}
