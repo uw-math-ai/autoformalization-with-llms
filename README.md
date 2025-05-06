@@ -8,5 +8,6 @@
 6. Run `poetry run python scripts/pantograph_example.py` to test the installation.
 
 # Eval on minif2f
+- Add the `OPENAI_API_KEY = your-actual-key` to `.env`
 - Run `poetry run python src/evaluate.py`. Solved theorems get saved in `data/results/solved/`. The number of solved theorems is saved in `data/results/summary.csv`.
 - If you get an error that server took too long to respond, you need to make sure minif2f imports are compiled. To do that run `lake exe cache get` and then open file `AutoformalizationWithLlms/minif2f_imports.lean` in VSCode and make sure it compiles.
