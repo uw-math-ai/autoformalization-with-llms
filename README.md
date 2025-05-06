@@ -8,4 +8,5 @@
 6. Run `poetry run python scripts/pantograph_example.py` to test the installation.
 
 # Eval on minif2f
-Run `poetry run python src/evaluate.py`
+- Run `poetry run python src/evaluate.py`
+- If you get an error that server took too long to respond, you need to make sure minif2f imports are compiled. To do that run `lake exe cache get` and then open file `AutoformalizationWithLlms/minif2f_imports.lean` in VSCode and make sure it compiles.
