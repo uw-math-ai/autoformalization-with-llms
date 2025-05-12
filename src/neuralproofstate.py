@@ -5,7 +5,6 @@ import re
 
 class NeuralProofState():
     
-    # TODO add server imports for definitions of real numbers, etc
     def __init__(self, state=None, thm_statement=None, prev_tactics=None,
                  informal_info=None, server=None, neg_log_prob=None, parent=None,
                  failed_tactics=None):
@@ -20,12 +19,8 @@ class NeuralProofState():
                 try:
                     self.state = self.server.goal_start(thm_statement)
                 except Exception as e2:
-                    try:
-                        goal = self.make_valid_goal(thm_statement)
-                        self.state = self.server.goal_start(goal)
-                    except Exception as e3:
-                        print("Couldn't turn the theorem into a valid goal state!")
-                        print(f"errors: {e, e2, e3}")
+                    print("Couldn't turn the theorem into a valid goal state!")
+                    print(f"errors: {e, e2}")
                         
             # print(f"\n")
             # print(f"creating new nps, state is:\n{self.state}")
@@ -34,7 +29,7 @@ class NeuralProofState():
             self.prev_tactics = []
             self.neg_log_prob = 0
             self.parent = None
-            self.failed_tactics = None
+            self.failed_tactics = []
         else:
             self.state = state
             self.prev_tactics = prev_tactics
@@ -44,16 +39,19 @@ class NeuralProofState():
         
         self.tactics_to_child_states = {}
     
-    # TODO: need to do error handling correctly here - i.e. return None if the tactic is invalid
     def apply_tactic(self, tactic, goal_id=0):
         print(f"tactic: {tactic}, prev failures: {self.failed_tactics}")
-        new_state = self.server.goal_tactic(self.state, goal_id=goal_id, tactic=tactic)
-        
-        child_node = NeuralProofState(state=new_state, prev_tactics=self.prev_tactics + [tactic], 
-                                      informal_info=self.informal_info, server=self.server, parent=self)
-        
-        self.tactics_to_child_states[tactic] = child_node
-        return child_node        
+        try:
+            new_state = self.server.goal_tactic(self.state, goal_id=goal_id, tactic=tactic)
+            child_node = NeuralProofState(state=new_state, prev_tactics=self.prev_tactics + [tactic], 
+                                        informal_info=self.informal_info, server=self.server, parent=self, 
+                                        failed_tactics=self.failed_tactics)
+            self.tactics_to_child_states[tactic] = child_node
+            
+            return child_node
+        except:
+            return None
+                    
     
     def add_failed_tactic(self, tactic):
         self.failed_tactics.append(tactic)
@@ -76,18 +74,6 @@ class NeuralProofState():
         Do not include the goal symbol in your response."""
         
         return prompt
-    
-        # Turns a theorem statement into a valid goal
-    # TODO make this work reliably for statements with multiple hypothesis
-    def make_valid_goal(self, thm_statement):
-        string_groups = re.match(r"\((.*?)\)\s*:\s*(.*)",thm_statement)
-        if string_groups:
-            context = string_groups.group(1)
-            statement = string_groups.group(2)
-            goal = f"forall ({context}), {statement}"
-            return goal
-        else:
-            raise Exception("theorem statement is in an invalid format!")
     
     def __str__(self):
         if len(self.state.__str__()) == 0:

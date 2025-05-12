@@ -1,4 +1,3 @@
-
 import csv
 import os
 import time
@@ -18,28 +17,29 @@ import datetime
 miniF2F_path = "data/test/minif2f-text-version.txt"
 import_path = "data/test/minif2f-imports.txt"
 theorems = load_theorems(miniF2F_path) # string versions of every theorem in minif2f
-imports = load_imports(import_path) # string of all the things minif2f imports, plus a few more
+imports = load_imports(import_path) # string of all the things minif2f imports. DO NOT add extra newlines, server will crash
 
-server = Server(project_path="./", imports=imports) # server seems to like crashing, can't handle the imports ?
+server = Server(project_path="./", imports=imports)
 
 search_params = {
-    "max_steps": 2,
+    "max_steps": 5,
     "heuristic": None,
-    "retries": 0, # TODO: implement this
+    "retries": 3,
 }
 
 model_params = {
-"model": "gpt-4o-mini",
-"max_tokens": 500,
-"temperature": 0.5,
-"top_p": 1,
-"n": 3,
+    "model": "gpt-4o",
+    "max_tokens": 500,
+    "temperature": 0.5,
+    "top_p": 1,
+    "n": 3,
 }
+
 num_theorems = 5
 theorems = theorems[:num_theorems]
 
 model = LLMModel(**model_params)
-search_agent = AStarSearchAgent(model, server)
+search_agent = AStarSearchAgent(model, server, heuristic=search_params['heuristic'])
 
 filename = f"{model_params['model']} temp {model_params['temperature']}"
 output_path = f"data/results/solved/{filename}.txt"
@@ -52,12 +52,16 @@ error_messages = []
 for i, theorem in enumerate(tqdm(theorems, desc="Solving theorems")):
     error_msg = None
     try:
-        if i % 2 == 0:
+        if i % 5 == 0:
             server = Server(project_path="./", imports=imports)
             search_agent = AStarSearchAgent(model, server, heuristic=search_params['heuristic'])
-
-        final_nps = search_agent.search(initial_sketch=theorem, max_steps=search_params['max_steps'], verbose=True)
+        
+        final_nps = search_agent.search(initial_sketch=theorem, 
+                                        max_steps=search_params['max_steps'], 
+                                        verbose=True, 
+                                        k_tries=search_params['retries'])
         if final_nps is not None:
+            print(final_nps)
             proof_text = final_nps.get_proof()
             print(f"proof text:\n{proof_text}")
             theorem_results.append((theorem, proof_text, None))

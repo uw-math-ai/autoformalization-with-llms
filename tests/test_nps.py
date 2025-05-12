@@ -20,19 +20,21 @@ class TestNeuralProofState(unittest.TestCase):
         
         self.assertTrue(next.state.is_solved)
         
-    def test_make_valid_goal(self):
+    '''def test_make_valid_goal(self):
         
         server = Server(project_path="./")
 
         root = NeuralProofState(thm_statement="(p q : Prop) : ¬(p → q) ↔ p ∧ ¬q", server=server)
-        self.assertEqual(str(root.state), "\n⊢ forall (p q : Prop), ¬(p → q) ↔ p ∧ ¬q")
-    
-    # TODO: Write test for theorem with multiple context statements/hypothesis
-    def test_complex_thm_statement(self):
-        server = Server(imports=["Mathlib.Data.Nat.Factorization.Basic","Mathlib.Data.Nat.Prime.Basic"], 
-                        project_path="./")
-        root = NeuralProofState(thm_statement="(n : ℕ) (h : n > 0) : n ≥ 1", server=server)
-        self.assertEqual(str(root.state), "\n⊢ forall (n : ℕ) (h : n > 0), n ≥ 1")
+        self.assertEqual(str(root.state), "\n⊢ forall (p q : Prop), ¬(p → q) ↔ p ∧ ¬q")''' 
+        
+    def test_wrong_tactic(self):
+        imports=["Mathlib.Data.Nat.Factorization.Basic","Mathlib.Data.Nat.Prime.Basic"]
+        server = Server(project_path="./", imports=imports)
+        root = NeuralProofState(thm_statement="theorem mathd_numbertheory_728 : (29^13 - 5^13) % 7 = 3 := by", server=server)
+        print(f"root: {root}")
+        child = root.apply_tactic("hellooooo")
+        
+        self.assertEqual(child, None)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,7 +1,7 @@
 from neuralproofstate import NeuralProofState
 from pantograph.server import Server
 
-import numpy as np
+# import numpy as np
 from functools import cache
 import os
 from openai import OpenAI

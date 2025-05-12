@@ -156,6 +156,7 @@ class AttilaModel():
                 tactics_list.append(tactic.replace("`", ""))
         return tactics_list
 
+'''
 import google.generativeai as genai
 import os
 import dotenv
@@ -289,3 +290,4 @@ if __name__ == "__main__":
     nps = NeuralProofState(server=server, thm_statement=theorem)
     model = AttilaModel2()
     print(model.generate_tactics(nps.state, None, theorem))
+'''
