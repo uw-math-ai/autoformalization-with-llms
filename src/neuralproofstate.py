@@ -1,7 +1,6 @@
-import re
+from lean_phrasebook import *
 
 # Contains information about the current proof state, including the unsolved goals and previously used tactics
-# This is the goal_tactic version
 
 class NeuralProofState():
     
@@ -42,6 +41,9 @@ class NeuralProofState():
     def apply_tactic(self, tactic, goal_id=0):
         print(f"tactic: {tactic}, prev failures: {self.failed_tactics}")
         try:
+            if "sorry" in tactic:
+                return None
+            
             new_state = self.server.goal_tactic(self.state, goal_id=goal_id, tactic=tactic)
             child_node = NeuralProofState(state=new_state, prev_tactics=self.prev_tactics + [tactic], 
                                         informal_info=self.informal_info, server=self.server, parent=self, 
@@ -63,6 +65,12 @@ class NeuralProofState():
         if self.informal_info:
             prompt += f"""You should also consider the following information when choosing a tactic: \n{self.informal_info}\n"""
             
+        # phrasebook = load_lean_phrasebook()
+        # prompt += f"""The following is a phrasebook that helps translate natural language into Lean 4 syntax: \n{phrasebook}\n"""    
+        
+        survival_guide = load_survival_guide()
+        prompt += f"""The following is a survival guide for Lean 4: \n{survival_guide}\n"""
+        
         if self.failed_tactics:
             prompt += f"""Note that you have previously tried the following tactics: \n{self.failed_tactics}\n
             They did not compile, either because of a syntax error, or because your code simply didn't make sense.
@@ -71,7 +79,9 @@ class NeuralProofState():
         prompt += f"""Give only the next Lean tactic and no other information in your response.
         Do not include 'by' at the start of your response, as it is already included in the theorem header.
         Do not put any quotation or tick marks around your answer. Do not give Lean 3 syntax. Do not use the sorry tactic.
-        Do not include the goal symbol in your response."""
+        Do not include the goal symbol in your response. You should give one tactic at a time, rather than multiple tactics
+        separated by a semicolon. Very long tactics tend to fail, so don't try those. The 'have' tactic also almost always fails.
+        You should try simple tactics before trying more complicated ones."""
         
         return prompt
     

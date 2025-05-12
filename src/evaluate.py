@@ -17,25 +17,25 @@ import datetime
 miniF2F_path = "data/test/minif2f-text-version.txt"
 import_path = "data/test/minif2f-imports.txt"
 theorems = load_theorems(miniF2F_path) # string versions of every theorem in minif2f
-imports = load_imports(import_path) # string of all the things minif2f imports. DO NOT add extra newlines, server will crash
+imports = load_imports(import_path) # string of all the things minif2f imports. DO NOT add extra newlines in imports doc, server may crash
 
 server = Server(project_path="./", imports=imports)
 
 search_params = {
     "max_steps": 5,
     "heuristic": None,
-    "retries": 3,
+    "retries": 2,
 }
 
 model_params = {
     "model": "gpt-4o",
-    "max_tokens": 500,
-    "temperature": 0.5,
+    "max_tokens": 100,
+    "temperature": 0.4,
     "top_p": 1,
-    "n": 3,
+    "n": 2,
 }
 
-num_theorems = 5
+num_theorems = 100
 theorems = theorems[:num_theorems]
 
 model = LLMModel(**model_params)
@@ -52,7 +52,7 @@ error_messages = []
 for i, theorem in enumerate(tqdm(theorems, desc="Solving theorems")):
     error_msg = None
     try:
-        if i % 5 == 0:
+        if i % 2 == 0:
             server = Server(project_path="./", imports=imports)
             search_agent = AStarSearchAgent(model, server, heuristic=search_params['heuristic'])
         

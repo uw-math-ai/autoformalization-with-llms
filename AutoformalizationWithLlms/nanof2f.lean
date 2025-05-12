@@ -58,3 +58,8 @@ exact h
 theorem Prime.dvd_iff_eq {p a : ℕ} (hp : p.Prime) (a1 : a ≠ 1) : a ∣ p ↔ p = a := by
   apply Nat.Prime.dvd_iff_eq hp a1
 
+-- this proof was given by our search using 4o
+theorem mathd_algebra_398 (a b c : ℝ) (h₀ : 0 < a ∧ 0 < b ∧ 0 < c) (h₁ : 9 * b = 20 * c) (h₂ : 7 * a = 4 * b) : 63 * a = 80 * c := by
+  have h₃ : b = (7 / 4) * a := by field_simp [h₂]
+  have h₄ : 9 * (7 / 4 * a) = 20 * c := by rw [←h₁, h₃]
+  linarith [h₄]

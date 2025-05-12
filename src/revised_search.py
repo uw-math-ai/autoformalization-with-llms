@@ -7,10 +7,7 @@ import os
 import heapq
 import random
 
-# Use only one of these below!
-
-# from neuralproofstate_two import NeuralProofState # load_sorry version
-from neuralproofstate import NeuralProofState # goal_tactic version - has some bugs right now
+from neuralproofstate import NeuralProofState
 
 
 class AStarSearchAgent():

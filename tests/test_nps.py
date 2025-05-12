@@ -35,6 +35,14 @@ class TestNeuralProofState(unittest.TestCase):
         child = root.apply_tactic("hellooooo")
         
         self.assertEqual(child, None)
+        
+    def test_phrasebook(self):
+        imports=["Mathlib.Data.Nat.Factorization.Basic","Mathlib.Data.Nat.Prime.Basic"]
+        server = Server(project_path="./", imports=imports)
+        root = NeuralProofState(thm_statement="theorem mathd_numbertheory_728 : (29^13 - 5^13) % 7 = 3 := by", server=server)
+        
+        print(root.to_prompt())
+
 
 if __name__ == '__main__':
     unittest.main()
