@@ -35,7 +35,7 @@ model_params = {
     "n": 2,
 }
 
-num_theorems = 100
+num_theorems = 5
 theorems = theorems[:num_theorems]
 
 model = LLMModel(**model_params)
@@ -101,50 +101,46 @@ with open(output_path, "w", encoding="utf-8") as out_file:
 print(f"\nFinished. Solved {solved_count} out of {len(theorems)} theorems.")
 print(f"Saved solved theorems to {output_path}")
 
-# TODO: compute statistics and save them to the csv as well. For example, average number of steps taken, most frequent tactics used, etc.
+# TODO: summary.csv gets overwritten every time. Need to fix it.
 
-# Save summary to CSV
+import csv, os, time
+
 csv_output_path = "data/results/summary.csv"
 row = {}
 row.update(model_params)
 row.update(search_params)
-row["solved"] = solved_count
-row["attempted"] = num_theorems
-row["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+row.update(
+    solved=solved_count,
+    attempted=num_theorems,
+    timestamp=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+)
 
-# Ensure the directory exists
 os.makedirs(os.path.dirname(csv_output_path), exist_ok=True)
 
-# Read existing fieldnames if file exists, else use current keys
+# --- prepare header ---------------------------------------------------------
 if os.path.exists(csv_output_path):
-    with open(csv_output_path, "r", newline="", encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile)
-        existing_fieldnames = reader.fieldnames if reader.fieldnames else []
+    with open(csv_output_path, newline="", encoding="utf-8") as f:
+        existing_fieldnames = csv.DictReader(f).fieldnames or []
 else:
     existing_fieldnames = []
 
-# Merge existing fieldnames with new keys
-fieldnames = list(existing_fieldnames or [])
-for key in row.keys():
-    if key not in fieldnames:
-        fieldnames.append(key)
+fieldnames = list({*existing_fieldnames, *row.keys()})
 
-write_header = not os.path.exists(csv_output_path) or set(fieldnames) != set(existing_fieldnames or [])
+# --- decide whether to append or rewrite ------------------------------------
+same_header = set(fieldnames) == set(existing_fieldnames)
+mode = "a" if same_header else "w"
 
-# Read all existing rows if we need to update columns
-rows = []
-if os.path.exists(csv_output_path) and write_header and existing_fieldnames:
-    with open(csv_output_path, "r", newline="", encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile)
-        for r in reader:
-            rows.append(r)
+# read old rows only if we must rewrite
+old_rows = []
+if not same_header and os.path.exists(csv_output_path):
+    with open(csv_output_path, newline="", encoding="utf-8") as f:
+        old_rows = list(csv.DictReader(f))
 
-# Add the new row
-rows.append(row)
-
-# Write all rows with updated columns
-with open(csv_output_path, "w", newline="", encoding="utf-8") as csvfile:
-    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-    writer.writeheader()
-    for r in rows:
-        writer.writerow({k: r.get(k, "") for k in fieldnames})
+# --- write ------------------------------------------------------------------
+with open(csv_output_path, mode, newline="", encoding="utf-8") as f:
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    if mode == "w":
+        writer.writeheader()
+        for r in old_rows:
+            writer.writerow({k: r.get(k, "") for k in fieldnames})
+    writer.writerow({k: row.get(k, "") for k in fieldnames})
