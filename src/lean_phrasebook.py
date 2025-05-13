@@ -551,12 +551,8 @@ def load_survival_guide() -> str:
     return res.text       
 
 
-def get_natural_language_proof(state: str, phrasebook: str, guide: str) -> str:   
+def get_natural_language_proof(state: str) -> str:   
     prompt = (
-        "Lean phrasebook:\n"
-        f"{phrasebook}\n\n"
-        "Lean 4 survival guide:\n"
-        f"{guide}\n\n"
         "Theorem to explain, written in Lean 4 syntax:\n"
         f"{state}\n\n"
         "Provide a **step-by-step explanation in natural language** for how to prove this theorem mathematically."

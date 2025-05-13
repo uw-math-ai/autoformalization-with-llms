@@ -2,6 +2,7 @@ from abc import abstractmethod
 from pantograph.server import Server
 import re
 import os
+from lean_phrasebook import get_natural_language_proof
 
 # from predictnextstep import predict_next_step
 import heapq
@@ -59,7 +60,18 @@ class AStarSearchAgent():
         
         
         initial_state = NeuralProofState(thm_statement=initial_sketch, server=self.server)
-                
+        
+        # natural language proof
+        natural_language_proof = get_natural_language_proof(
+            state=initial_sketch
+        )
+        
+        informal_info = {
+            "natural_language_proof": natural_language_proof
+        }
+        
+        initial_state.informal_info = informal_info
+        
         steps = 0
         p_queue = []
         heapq.heapify(p_queue)
