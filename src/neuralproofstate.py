@@ -101,4 +101,9 @@ class NeuralProofState():
         
     def get_proof(self):
         return f"\n".join(self.prev_tactics)
+    
+    def __lt__(self, other):
+        if isinstance(other, NeuralProofState):
+            return len(self.prev_tactics) < len(other.prev_tactics) # this is arbitrary, just want to sort nps in case of heuristic ties
+        return NotImplemented
         

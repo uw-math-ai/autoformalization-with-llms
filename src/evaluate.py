@@ -10,7 +10,7 @@ from LLMModel import LLMModel
 
 from neuralproofstate import NeuralProofState
 
-from heuristics import goal_based
+from heuristics import *
 import traceback
 import datetime
 
@@ -23,14 +23,14 @@ server = Server(project_path="./", imports=imports)
 
 search_params = {
     "max_steps": 5,
-    "heuristic": None,
+    "heuristic": goal_hypothesis_comparison,
     "retries": 2,
 }
 
 model_params = {
     "model": "gpt-4o",
     "max_tokens": 100,
-    "temperature": 0.4,
+    "temperature": 0.5,
     "top_p": 1,
     "n": 2,
 }

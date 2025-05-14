@@ -1,7 +1,7 @@
 from neuralproofstate import NeuralProofState
 from pantograph.server import Server
 
-# import numpy as np
+import numpy as np
 from functools import cache
 import os
 from openai import OpenAI
@@ -28,14 +28,13 @@ def separate_goals_and_hyps(state_string):
         else:
             hyps.append(line.strip())
             
-    print("hyps vector:"," ".join(hyps))
-    print("goals vector:", " ".join(goals))
+    # print("hyps vector:"," ".join(hyps))
+    # print("goals vector:", " ".join(goals))
     
     return " ".join(hyps), " ".join(goals)
 
-# TODO: Add modes - maybe max cosine similarity is best metric, maybe average is better?
 @cache
-def goal_hypothesis_comparison(proof_state, proof_string=None, print_info=False):
+def goal_hypothesis_comparison(nps):
     '''
     Gets the vector embeddings for the goals & hypothesis from an embedding model,
     then compares the cosine similarities of the goals & hypotheses
@@ -43,17 +42,11 @@ def goal_hypothesis_comparison(proof_state, proof_string=None, print_info=False)
     
     client = OpenAI()
     
-    '''if neural_proof_state is not None:
-        hyps, goals = separate_goals_and_hyps(str(neural_proof_state.state))
-    else:
-        hyps, goals = separate_goals_and_hyps(proof_string)'''
-    
-    if proof_state is not None:
-        proof_string = str(proof_state.state)
+    if nps is not None:
+        hyps, goals = separate_goals_and_hyps(str(nps.state))
     else:
         return 0
-    hyps, goals = separate_goals_and_hyps(proof_string)
-        
+            
     if len(goals) == 0 or len(hyps) == 0:
         return 0
 
@@ -70,18 +63,6 @@ def goal_hypothesis_comparison(proof_state, proof_string=None, print_info=False)
     )
     
     hyp_embeddings = np.array(response2.data[0].embedding)
-    
-    # similarity_matrix = goal_embeddings @ hyp_embeddings.T
-    
-    if print_info:
-        '''print("goals & hyps:", goals, hyps)
-        print("cosine similarity scores:", similarity_matrix)
-        print("max similarity:",np.max(np.ravel(similarity_matrix)))
-        print("min similarity:", np.min(np.ravel(similarity_matrix)))
-        print("mean similarity:", np.mean(np.ravel(similarity_matrix)))'''
-        print("max similarity:", np.inner(goal_embeddings, hyp_embeddings))
-
-    # return -1 * np.log(np.max(np.ravel(similarity_matrix))) # Assuming nonneg cosine similarity
     
     normalized = 0.5 * (np.inner(goal_embeddings, hyp_embeddings) + 1) # make nonneg
     
