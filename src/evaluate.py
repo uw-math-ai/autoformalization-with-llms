@@ -101,8 +101,6 @@ with open(output_path, "w", encoding="utf-8") as out_file:
 print(f"\nFinished. Solved {solved_count} out of {len(theorems)} theorems.")
 print(f"Saved solved theorems to {output_path}")
 
-# TODO: summary.csv gets overwritten every time. Need to fix it.
-
 import csv, os, time
 
 csv_output_path = "data/results/summary.csv"

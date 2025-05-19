@@ -10,6 +10,15 @@ if __name__ == '__main__':
     
     server = Server(project_path="./", imports=imports)
 
+    state0 = server.goal_start("True = True")
+    print("state0:\n", state0, "\n")
+    state1 = server.goal_tactic(state0, goal_id=0, tactic="exact rfl")
+    print("Used tactic: `exact rfl`")
+    print("state1:\n", state1, "\n")
+    assert state1.is_solved
+    
+    
+
     # prove a theorem
     state0 = server.goal_start("forall (p q: Prop), Or p q -> Or q p")
     print("state0: ", state0, "\n")
@@ -41,7 +50,7 @@ if __name__ == '__main__':
     state2 = server.goal_tactic(state1, goal_id=0, tactic="simp")
     print("Used tactic: `simp`")
     print("state2:\n", state2, "\n")    
-    assert state5.is_solved
+    assert state2.is_solved
     
     state0 = server.goal_start("forall (a b : ℝ), (h : a = b) → a + a = b + b")
     print("state0:\n", state0, "\n")
